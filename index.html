@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI圆桌 · 成长对话</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'warm-blue': '#5A7CA8',
+                        'morning-orange': '#FF9A4D',
+                        'light-cream': '#FEFCF7'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-light-cream font-sans">
+    <div id="app" class="flex h-screen">
+        <!-- 左侧导航栏 -->
+        <div class="w-80 bg-white border-r border-gray-200 flex flex-col">
+            <!-- 搜索框 -->
+            <div class="p-4 border-b border-gray-100">
+                <div class="relative">
+                    <input type="text" id="searchInput" placeholder="🔍 搜索聊天记录..." 
+                           class="w-full px-4 py-2 bg-gray-50 rounded-lg border-none outline-none focus:bg-white focus:ring-2 focus:ring-warm-blue/20">
+                </div>
+            </div>
+
+            <!-- 新建圆桌按钮 -->
+            <div class="p-4 border-b border-gray-100">
+                <button id="newRoundtableBtn" class="w-full bg-morning-orange text-white py-2 px-4 rounded-lg hover:bg-orange-500 transition-colors duration-300">
+                    + 新建AI圆桌
+                </button>
+            </div>
+
+            <!-- 会话列表 -->
+            <div class="flex-1 overflow-y-auto">
+                <div id="sessionList" class="p-2">
+                    <!-- 会话项将通过JS动态生成 -->
+                </div>
+            </div>
+
+            <!-- 底部功能区 -->
+            <div class="p-4 border-t border-gray-100 space-y-2">
+                <button id="configBtn" class="w-full text-left px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                    ⚙️ 配置中心
+                </button>
+                <button id="growthLogBtn" class="w-full text-left px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                    📓 成长日志
+                </button>
+            </div>
+        </div>
+
+        <!-- 主聊天区域 -->
+        <div class="flex-1 flex flex-col">
+            <!-- AI角色栏 -->
+            <div id="aiRoleBar" class="bg-white border-b border-gray-200 p-4 hidden">
+                <div class="flex space-x-4" id="aiRoles">
+                    <!-- AI角色头像将通过JS动态生成 -->
+                </div>
+            </div>
+
+            <!-- 聊天消息区 -->
+            <div class="flex-1 overflow-y-auto p-6" id="chatMessages">
+                <div class="max-w-4xl mx-auto">
+                    <div class="text-center text-gray-500 py-20">
+                        <div class="text-6xl mb-4">💬</div>
+                        <h2 class="text-2xl font-medium mb-2">欢迎来到AI圆桌</h2>
+                        <p class="text-gray-400">点击"新建AI圆桌"开始您的成长对话</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 输入区域 -->
+            <div class="bg-white border-t border-gray-200 p-4" id="inputArea" style="display: none;">
+                <div class="max-w-4xl mx-auto">
+                    <div class="flex space-x-4">
+                        <input type="text" id="messageInput" placeholder="输入你的想法..." 
+                               class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-warm-blue/20">
+                        <button id="sendBtn" class="bg-warm-blue text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors">
+                            发送
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建圆桌模态框 -->
+    <div id="newRoundtableModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 w-96 max-w-90vw">
+            <h3 class="text-xl font-medium mb-4">选择AI伙伴</h3>
+            <div class="space-y-3 mb-6">
+                <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input type="checkbox" name="aiRole" value="coach" class="text-warm-blue">
+                    <div class="flex-1">
+                        <div class="font-medium">💡 Coach 小柯</div>
+                        <div class="text-sm text-gray-500">成长引导者 - 温和提问式</div>
+                    </div>
+                </label>
+                <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input type="checkbox" name="aiRole" value="strategist" class="text-warm-blue">
+                    <div class="flex-1">
+                        <div class="font-medium">🧠 Strategist 老谋</div>
+                        <div class="text-sm text-gray-500">战略顾问 - 理性框架清晰</div>
+                    </div>
+                </label>
+                <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input type="checkbox" name="aiRole" value="psychologist" class="text-warm-blue">
+                    <div class="flex-1">
+                        <div class="font-medium">💖 Psychologist 心理姐</div>
+                        <div class="text-sm text-gray-500">情绪伙伴 - 共情细腻</div>
+                    </div>
+                </label>
+                <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input type="checkbox" name="aiRole" value="operator" class="text-warm-blue">
+                    <div class="flex-1">
+                        <div class="font-medium">⚡ Operator 阿操</div>
+                        <div class="text-sm text-gray-500">落地专家 - 直接高效</div>
+                    </div>
+                </label>
+            </div>
+            <div class="flex space-x-3">
+                <button id="cancelRoundtable" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    取消
+                </button>
+                <button id="createRoundtable" class="flex-1 py-2 px-4 bg-warm-blue text-white rounded-lg hover:bg-blue-600">
+                    创建圆桌
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 配置中心模态框 -->
+    <div id="configModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 w-[500px] max-w-90vw max-h-[80vh] overflow-y-auto">
+            <h3 class="text-xl font-medium mb-4">配置中心</h3>
+            
+            <!-- AI平台选择 -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">AI平台</label>
+                <select id="aiProvider" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="dashscope">阿里云百炼</option>
+                    <option value="openrouter">OpenRouter</option>
+                </select>
+            </div>
+
+            <!-- API Key配置 -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">API Key</label>
+                <input type="password" id="apiKey" placeholder="输入您的API Key" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                <div class="text-xs text-gray-500 mt-1">🔒 仅本地存储，不会上传到服务器</div>
+            </div>
+
+            <!-- 模型选择 -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">文本模型</label>
+                <select id="textModel" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="qwen-plus">qwen-plus</option>
+                    <option value="qwen-max">qwen-max</option>
+                    <option value="qwen-turbo">qwen-turbo</option>
+                </select>
+            </div>
+
+            <!-- Google CSE配置 -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">Google CSE ID (可选)</label>
+                <input type="text" id="googleCseId" placeholder="用于搜索功能" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+
+            <!-- 其他设置 -->
+            <div class="mb-6">
+                <label class="flex items-center space-x-2">
+                    <input type="checkbox" id="enableAnimations" checked class="text-warm-blue">
+                    <span class="text-sm">启用动画效果</span>
+                </label>
+            </div>
+
+            <div class="flex space-x-3">
+                <button id="cancelConfig" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    取消
+                </button>
+                <button id="saveConfig" class="flex-1 py-2 px-4 bg-warm-blue text-white rounded-lg hover:bg-blue-600">
+                    保存配置
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 成长日志模态框 -->
+    <div id="growthLogModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 w-[800px] max-w-90vw max-h-[80vh] overflow-y-auto">
+            <h3 class="text-xl font-medium mb-4">📓 成长日志</h3>
+            
+            <!-- 成长树区域 -->
+            <div class="mb-6 p-4 bg-gradient-to-b from-blue-50 to-green-50 rounded-lg">
+                <div class="text-center">
+                    <div id="growthTree" class="text-6xl mb-2">🌱</div>
+                    <div class="text-sm text-gray-600">成长树 Level 1</div>
+                    <div class="text-xs text-gray-500">继续对话让小树茁壮成长</div>
+                </div>
+            </div>
+
+            <!-- 统计面板 -->
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="text-center p-3 bg-gray-50 rounded-lg">
+                    <div class="text-2xl font-bold text-warm-blue">0</div>
+                    <div class="text-sm text-gray-600">对话次数</div>
+                </div>
+                <div class="text-center p-3 bg-gray-50 rounded-lg">
+                    <div class="text-2xl font-bold text-morning-orange">0</div>
+                    <div class="text-sm text-gray-600">复盘卡片</div>
+                </div>
+                <div class="text-center p-3 bg-gray-50 rounded-lg">
+                    <div class="text-2xl font-bold text-green-600">0</div>
+                    <div class="text-sm text-gray-600">行动完成</div>
+                </div>
+            </div>
+
+            <!-- 卡片档案 -->
+            <div class="mb-4">
+                <h4 class="font-medium mb-2">📌 卡片档案馆</h4>
+                <div id="cardArchive" class="text-center text-gray-500 py-8">
+                    暂无复盘卡片，开始对话后会自动生成
+                </div>
+            </div>
+
+            <div class="flex justify-end">
+                <button id="closeGrowthLog" class="py-2 px-4 bg-warm-blue text-white rounded-lg hover:bg-blue-600">
+                    关闭
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
