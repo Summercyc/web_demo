@@ -1,3 +1,80 @@
+// Markdown 解析器
+class MarkdownParser {
+    static parseMarkdown(text) {
+        if (!text) return '';
+        
+        let html = text
+            // 处理分隔线
+            .replace(/^---+$/gm, '<hr class="my-4 border-gray-300 border-opacity-50">')
+            
+            // 处理标题（###, ##, #）
+            .replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold text-gray-800 mt-4 mb-2">$1</h3>')
+            .replace(/^## (.*$)/gm, '<h2 class="text-xl font-semibold text-gray-800 mt-5 mb-3">$1</h2>')
+            .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold text-gray-800 mt-6 mb-4">$1</h1>')
+            
+            // 处理粗体
+            .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-800">$1</strong>')
+            
+            // 处理斜体
+            .replace(/\*(.*?)\*/g, '<em class="italic text-gray-700">$1</em>')
+            
+            // 处理表情符号开头的段落（特殊格式）
+            .replace(/^(🌱|🧠|🌸|🌼|💡|⚡|🎯|💭|✨|🔍|📝|💪|🌟|🎪|🎨|📊|🏆)\s+(.*$)/gm, '<div class="flex items-start mb-3"><span class="text-lg mr-2 mt-1">$1</span><div class="flex-1">$2</div></div>')
+            
+            // 处理有序列表
+            .replace(/^\d+\.\s+(.*$)/gm, '<li class="mb-2 ml-4">$1</li>')
+            
+            // 处理无序列表
+            .replace(/^[-\*]\s+(.*$)/gm, '<li class="mb-2 ml-4 relative"><span class="absolute -left-4 text-blue-500">•</span>$1</li>')
+            
+            // 处理行内代码
+            .replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-2 py-1 rounded text-sm font-mono">$1</code>')
+            
+            // 处理换行
+            .replace(/\n\n/g, '</p><p class="mb-3">')
+            .replace(/\n/g, '<br>');
+        
+        // 包装列表项
+        html = html.replace(/(<li.*?<\/li>)/gs, function(match, listItems) {
+            if (listItems.includes('ml-4')) {
+                return `<ul class="list-none mb-4">${listItems}</ul>`;
+            }
+            return match;
+        });
+        
+        // 包装段落
+        if (!html.includes('<h1>') && !html.includes('<h2>') && !html.includes('<h3>') && !html.includes('<div class="flex')) {
+            html = '<p class="mb-3">' + html + '</p>';
+        } else {
+            // 对于包含标题的内容，只在非标题段落加p标签
+            html = html.replace(/^(?!<[h123]|<div|<ul|<hr|<li)(.+)$/gm, '<p class="mb-3">$1</p>');
+        }
+        
+        return html;
+    }
+    
+    static enhanceReflectionContent(text) {
+        // 专门为复盘内容优化的解析
+        let html = this.parseMarkdown(text);
+        
+        // 增强样式处理
+        html = html
+            // 为行动计划添加特殊样式
+            .replace(/<li([^>]*?)>(.*?(?:行动|建议|计划|目标|步骤).*?)<\/li>/gi, 
+                '<li$1><div class="action-item">$2</div></li>')
+            
+            // 为洞察内容添加高亮
+            .replace(/<p([^>]*?)>(.*?(?:洞察|领悟|发现|意识到).*?)<\/p>/gi, 
+                '<div class="highlight">$2</div>')
+            
+            // 美化表情符号段落
+            .replace(/<div class="flex items-start mb-3"><span class="text-lg mr-2 mt-1">(🌱|🧠|🌸|🌼)<\/span><div class="flex-1">(.*?)<\/div><\/div>/g,
+                '<div class="flex items-start mb-4 p-3 bg-white bg-opacity-40 rounded-lg"><span class="text-2xl mr-3">$1</span><div class="flex-1 font-medium">$2</div></div>');
+        
+        return html;
+    }
+}
+
 // 全局状态管理
 class AppState {
     constructor() {
@@ -1472,10 +1549,13 @@ class AIRoundtableApp {
                 response = await this.callOpenRouter(prompt, textModel, apiKey);
             }
             
-            // 显示结果，使用马卡龙风格
+            // 显示结果，使用重新设计的马卡龙风格，并解析Markdown
+            const parsedContent = MarkdownParser.enhanceReflectionContent(response);
             document.getElementById('reflectResult').innerHTML = `
                 <div class="macaron-title">闪电复盘卡片</div>
-                <div class="macaron-content whitespace-pre-line overflow-y-auto max-h-60">${response}</div>
+                <div class="reflection-card-content">
+                    <div class="reflection-content">${parsedContent}</div>
+                </div>
             `;
             
             // 保存复盘卡片
@@ -1572,10 +1652,13 @@ class AIRoundtableApp {
                 response = await this.callOpenRouter(prompt, textModel, apiKey);
             }
             
-            // 显示结果，使用马卡龙风格，添加滚动功能
+            // 显示结果，使用重新设计的马卡龙风格，添加滚动功能，并解析Markdown
+            const parsedContent = MarkdownParser.enhanceReflectionContent(response);
             document.getElementById('reflectResult').innerHTML = `
                 <div class="macaron-title">深度复盘卡片</div>
-                <div class="macaron-content whitespace-pre-line overflow-y-auto max-h-60">${response}</div>
+                <div class="reflection-card-content">
+                    <div class="reflection-content">${parsedContent}</div>
+                </div>
             `;
             
             // 保存复盘卡片
@@ -1780,21 +1863,24 @@ class AIRoundtableApp {
                 content = card.content.replace(titleMatch[0], '');
             }
             
-            // 截断内容
-            const shortContent = content.length > 100 ? content.substring(0, 100) + '...' : content;
+            // 解析Markdown内容并截断
+            const parsedContent = MarkdownParser.parseMarkdown(content);
+            // 移除HTML标签后截断，以获得纯文本预览
+            const textContent = parsedContent.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+            const shortContent = textContent.length > 120 ? textContent.substring(0, 120) + '...' : textContent;
             
             cardElement.innerHTML = `
-                <div class="flex justify-between items-start mb-3">
-                    <h5 class="font-medium text-gray-800">${title}</h5>
-                    <span class="text-xs text-gray-600">${new Date(card.createdAt).toLocaleDateString()}</span>
+                <div class="flex justify-between items-start mb-4">
+                    <h5 class="macaron-title text-base mb-1">${title}</h5>
+                    <span class="text-xs text-gray-500 font-medium bg-white bg-opacity-60 px-2 py-1 rounded-full">${new Date(card.createdAt).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}</span>
                 </div>
-                <div class="text-sm text-gray-700 mb-4 whitespace-pre-line">${shortContent}</div>
-                <div class="flex flex-wrap gap-2">
+                <div class="reflection-content text-sm text-gray-700 mb-6 line-clamp-4">${shortContent}</div>
+                <div class="flex flex-wrap gap-2 border-t border-white border-opacity-40 pt-4">
                     ${card.tags.map(tag => `
                         <span class="macaron-tag ${cardColor} text-xs">#${tag}</span>
                     `).join('')}
                     <span class="macaron-tag ${card.type === 'deep' ? 'purple' : 'orange'} text-xs ml-auto">
-                        ${card.type === 'deep' ? '深潜' : '闪电'}复盘
+                        ${card.type === 'deep' ? '🧠 深潜' : '⚡ 闪电'}
                     </span>
                 </div>
             `;
@@ -1817,22 +1903,34 @@ class AIRoundtableApp {
         modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
         
         modal.innerHTML = `
-            <div class="macaron-card ${cardColor} w-[600px] max-w-90vw max-h-[80vh] overflow-y-auto">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-medium text-gray-800">${card.title}</h3>
-                    <span class="text-sm text-gray-600">${new Date(card.createdAt).toLocaleDateString()}</span>
+            <div class="macaron-card ${cardColor} w-[700px] max-w-90vw max-h-[85vh] overflow-hidden">
+                <div class="flex justify-between items-start mb-6">
+                    <div class="flex-1">
+                        <h3 class="macaron-title mb-2">${card.title}</h3>
+                        <span class="text-sm text-gray-500 font-medium">${new Date(card.createdAt).toLocaleDateString('zh-CN', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric',
+                            weekday: 'long'
+                        })}</span>
+                    </div>
                 </div>
                 
-                <div class="whitespace-pre-line mb-6 text-gray-700">${card.content}</div>
+                <div class="reflection-card-content mb-6">
+                    <div class="reflection-content">${MarkdownParser.enhanceReflectionContent(card.content)}</div>
+                </div>
                 
-                <div class="flex flex-wrap gap-2 mb-6">
+                <div class="flex flex-wrap gap-2 mb-6 border-t border-white border-opacity-30 pt-4">
                     ${card.tags.map(tag => `
-                        <span class="macaron-tag ${cardColor} text-xs">#${tag}</span>
+                        <span class="macaron-tag ${cardColor}">#${tag}</span>
                     `).join('')}
+                    <span class="macaron-tag ${card.type === 'deep' ? 'purple' : 'orange'} ml-auto">
+                        ${card.type === 'deep' ? '🧠 深潜' : '⚡ 闪电'}复盘
+                    </span>
                 </div>
                 
-                <div class="flex justify-end">
-                    <button class="close-card-detail py-2 px-6 bg-white bg-opacity-70 text-gray-700 rounded-full hover:bg-white hover:shadow-md transition-all">
+                <div class="flex justify-end border-t border-white border-opacity-30 pt-4">
+                    <button class="close-card-detail py-3 px-8 bg-white bg-opacity-80 text-gray-700 rounded-full hover:bg-white hover:shadow-lg transition-all font-medium">
                         关闭
                     </button>
                 </div>

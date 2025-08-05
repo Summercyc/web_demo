@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>复盘卡片新样式演示</title>
+    <link rel="stylesheet" href="tailwind.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        }
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .demo-section {
+            margin-bottom: 40px;
+        }
+        .demo-title {
+            color: white;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .demo-subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1 class="demo-title">✨ 复盘卡片新样式演示</h1>
+        <p class="demo-subtitle">重新设计的马卡龙风格复盘卡片，具有更好的视觉层次和现代感</p>
+
+        <!-- 单个卡片展示 -->
+        <div class="demo-section">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                <!-- 闪电复盘卡片 - 蓝色 -->
+                <div class="macaron-card blue">
+                    <div class="macaron-title">工作沟通突破</div>
+                    <div class="reflection-card-content">
+                        <div class="reflection-content">
+                            <h2>核心洞察</h2>
+                            <p>在今天的团队会议中，我发现<strong>主动倾听</strong>比急于表达观点更重要。当我专注于理解同事的担忧时，整个讨论的氛围变得更加开放和建设性。</p>
+                            
+                            <h2>关键点</h2>
+                            <ul>
+                                <li>放慢说话节奏，给对方思考时间</li>
+                                <li>用"我理解你的意思是..."来确认理解</li>
+                                <li>在提出不同意见前，先认同对方的合理部分</li>
+                            </ul>
+                            
+                            <h2>行动建议</h2>
+                            <div class="action-item">下次会议前，提醒自己"先听再说"的原则</div>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2 border-t border-white border-opacity-40 pt-4">
+                        <span class="macaron-tag blue">#沟通</span>
+                        <span class="macaron-tag blue">#职场</span>
+                        <span class="macaron-tag orange ml-auto">⚡ 闪电</span>
+                    </div>
+                </div>
+
+                <!-- 深潜复盘卡片 - 紫色 -->
+                <div class="macaron-card purple">
+                    <div class="macaron-title">情绪管理深度反思</div>
+                    <div class="reflection-card-content">
+                        <div class="reflection-content">
+                            <h2>深度洞察</h2>
+                            <p>通过深入分析今天的情绪波动，我意识到<em>焦虑往往源于对不确定性的过度关注</em>。当我把注意力转向能够控制的行动时，内心变得更加平静。</p>
+                            
+                            <h2>思维模式分析</h2>
+                            <p>我发现自己习惯性地进行<strong>灾难化思维</strong>，总是想象最坏的结果。这种思维模式不仅消耗心理能量，还影响了决策质量。</p>
+                            
+                            <div class="highlight">
+                                重要提醒：情绪是信息，不是事实。学会观察情绪而不被情绪绑架。
+                            </div>
+                            
+                            <h2>成长方向</h2>
+                            <ul>
+                                <li>培养正念觉察能力，及时识别负面情绪</li>
+                                <li>建立情绪调节的工具箱，包括深呼吸、运动等</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2 border-t border-white border-opacity-40 pt-4">
+                        <span class="macaron-tag purple">#情绪</span>
+                        <span class="macaron-tag purple">#成长</span>
+                        <span class="macaron-tag purple ml-auto">🧠 深潜</span>
+                    </div>
+                </div>
+
+                <!-- 决策复盘卡片 - 绿色 -->
+                <div class="macaron-card green">
+                    <div class="macaron-title">项目决策复盘</div>
+                    <div class="reflection-card-content">
+                        <div class="reflection-content">
+                            <h2>决策回顾</h2>
+                            <p>今天在项目方向选择上，我运用了<strong>利弊分析法</strong>，这帮助我做出了更理性的决定。</p>
+                            
+                            <h2>学到的经验</h2>
+                            <ul>
+                                <li>数据驱动的决策比直觉更可靠</li>
+                                <li>团队讨论能发现个人盲点</li>
+                                <li>设定决策截止时间避免过度分析</li>
+                            </ul>
+                            
+                            <div class="action-item">建立个人决策模板，包含关键评估维度</div>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2 border-t border-white border-opacity-40 pt-4">
+                        <span class="macaron-tag green">#决策</span>
+                        <span class="macaron-tag green">#管理</span>
+                        <span class="macaron-tag orange ml-auto">⚡ 闪电</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- 标签展示 -->
+        <div class="demo-section">
+            <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-2xl p-6 mb-6">
+                <h3 class="text-white text-xl font-semibold mb-4">标签样式展示</h3>
+                <div class="flex flex-wrap gap-3">
+                    <span class="macaron-tag pink">#沟通</span>
+                    <span class="macaron-tag blue">#情绪</span>
+                    <span class="macaron-tag green">#决策</span>
+                    <span class="macaron-tag yellow">#学习</span>
+                    <span class="macaron-tag purple">#职场</span>
+                    <span class="macaron-tag orange">#成长</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 样式特点说明 -->
+        <div class="demo-section">
+            <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-2xl p-6">
+                <h3 class="text-white text-xl font-semibold mb-4">🎨 新样式特点</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-white">
+                    <div>
+                        <h4 class="font-semibold mb-2">✨ 视觉增强</h4>
+                        <ul class="text-sm space-y-1 opacity-90">
+                            <li>• 渐变背景和高级阴影效果</li>
+                            <li>• 毛玻璃质感和光效</li>
+                            <li>• 更流畅的悬停动画</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">📝 字体优化</h4>
+                        <ul class="text-sm space-y-1 opacity-90">
+                            <li>• 更好的字体层次和间距</li>
+                            <li>• 渐变色标题效果</li>
+                            <li>• 优化的行高和可读性</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">🎯 内容结构</h4>
+                        <ul class="text-sm space-y-1 opacity-90">
+                            <li>• 清晰的信息层级</li>
+                            <li>• 结构化的内容展示</li>
+                            <li>• 特殊区块高亮显示</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">📱 响应式设计</h4>
+                        <ul class="text-sm space-y-1 opacity-90">
+                            <li>• 移动端适配优化</li>
+                            <li>• 灵活的网格布局</li>
+                            <li>• 自适应字体大小</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 添加一些交互效果
+        document.addEventListener('DOMContentLoaded', function() {
+            // 为卡片添加点击反馈
+            document.querySelectorAll('.macaron-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    // 添加点击效果
+                    this.style.transform = 'scale(0.98)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 150);
+                });
+            });
+
+            // 为标签添加点击效果
+            document.querySelectorAll('.macaron-tag').forEach(tag => {
+                tag.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    // 添加点击波纹效果
+                    const ripple = document.createElement('div');
+                    ripple.style.cssText = `
+                        position: absolute;
+                        border-radius: 50%;
+                        background: rgba(255, 255, 255, 0.6);
+                        transform: scale(0);
+                        animation: ripple 0.6s linear;
+                        pointer-events: none;
+                    `;
+                    
+                    const rect = this.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height);
+                    ripple.style.width = ripple.style.height = size + 'px';
+                    ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+                    ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+                    
+                    this.style.position = 'relative';
+                    this.appendChild(ripple);
+                    
+                    setTimeout(() => {
+                        ripple.remove();
+                    }, 600);
+                });
+            });
+        });
+
+        // 添加波纹动画CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                to {
+                    transform: scale(4);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

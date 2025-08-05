@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown解析测试 - 复盘卡片</title>
+    <link rel="stylesheet" href="tailwind.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-title {
+            color: white;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .before-after {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        @media (min-width: 768px) {
+            .before-after {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .section-title {
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .raw-content {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 class="test-title">📝 Markdown解析测试</h1>
+        
+        <div class="before-after">
+            <div>
+                <h3 class="section-title">原始Markdown内容</h3>
+                <div class="raw-content" id="rawContent">
+**深度复盘卡片：在忙碌中找回节奏，温柔对待自己**
+
+---
+
+### 🌱 深度洞察
+你正在经历一种"努力却无法掌控"的疲惫感，这背后可能是对自我要求的高期待与现实时间、精力不匹配之间的冲突。你不是不够好，而是太想做好，却忽略了照顾自己的节奏。
+
+---
+
+### 🧠 思维模式分析
+你在面对工作压力时，倾向于通过"加倍努力"来应对，但当结果不如预期时，容易陷入自我怀疑或无力感。这种"做事优先、情绪其次"的模式虽然体现了你的**责任感**，但也可能让你忽略了自我调节和情绪释放的重要性。
+
+---
+
+### 🌸 成长方向
+1. **学会在努力之外，倾听自己的身心节奏**，找到效率与休息的平衡点。
+2. **建立更灵活的自我评价标准**，允许自己"做得刚好"，而不是"必须完美"。
+
+---
+
+### 🌼 行动计划
+1. **每天设定一个"工作小目标"**，完成后给自己一个小小的奖励（比如一杯喜欢的茶、几分钟冥想），帮助大脑建立正向反馈。
+2. **每天睡前写下3件今天做得不错的小事**，哪怕只是"坚持完成了一页报告"，也能慢慢建立自我肯定的力量。
+
+---
+
+你已经走在觉察与成长的路上，这份温柔的坚持，本身就是一种了不起的力量。继续加油，我会一直在这里陪着你 🌿
+                </div>
+            </div>
+            
+            <div>
+                <h3 class="section-title">解析后的效果</h3>
+                <div class="macaron-card blue">
+                    <div class="macaron-title">复盘卡片解析效果</div>
+                    <div class="reflection-card-content">
+                        <div class="reflection-content" id="parsedContent">
+                            <!-- 解析后的内容将在这里显示 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 功能说明 -->
+        <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-2xl p-6">
+            <h3 class="text-white text-xl font-semibold mb-4">🔧 Markdown解析功能</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-white text-sm">
+                <div>
+                    <h4 class="font-semibold mb-2">✅ 支持的语法</h4>
+                    <ul class="space-y-1 opacity-90">
+                        <li>• **粗体文本** → <strong>粗体文本</strong></li>
+                        <li>• ### 标题 → 格式化标题</li>
+                        <li>• --- → 分隔线</li>
+                        <li>• 🌱 表情符号段落 → 特殊样式</li>
+                        <li>• 1. 有序列表 → 格式化列表</li>
+                        <li>• - 无序列表 → 格式化列表</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-2">🎨 增强功能</h4>
+                    <ul class="space-y-1 opacity-90">
+                        <li>• 自动识别行动计划并高亮</li>
+                        <li>• 洞察内容特殊样式</li>
+                        <li>• 表情符号段落美化</li>
+                        <li>• 智能段落分割</li>
+                        <li>• 保持原有视觉层次</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 从app.js复制Markdown解析器
+        class MarkdownParser {
+            static parseMarkdown(text) {
+                if (!text) return '';
+                
+                let html = text
+                    // 处理分隔线
+                    .replace(/^---+$/gm, '<hr class="my-4 border-gray-300 border-opacity-50">')
+                    
+                    // 处理标题（###, ##, #）
+                    .replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold text-gray-800 mt-4 mb-2">$1</h3>')
+                    .replace(/^## (.*$)/gm, '<h2 class="text-xl font-semibold text-gray-800 mt-5 mb-3">$1</h2>')
+                    .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold text-gray-800 mt-6 mb-4">$1</h1>')
+                    
+                    // 处理粗体
+                    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-800">$1</strong>')
+                    
+                    // 处理斜体
+                    .replace(/\*(.*?)\*/g, '<em class="italic text-gray-700">$1</em>')
+                    
+                    // 处理表情符号开头的段落（特殊格式）
+                    .replace(/^(🌱|🧠|🌸|🌼|💡|⚡|🎯|💭|✨|🔍|📝|💪|🌟|🎪|🎨|📊|🏆)\s+(.*$)/gm, '<div class="flex items-start mb-3"><span class="text-lg mr-2 mt-1">$1</span><div class="flex-1">$2</div></div>')
+                    
+                    // 处理有序列表
+                    .replace(/^\d+\.\s+(.*$)/gm, '<li class="mb-2 ml-4">$1</li>')
+                    
+                    // 处理无序列表
+                    .replace(/^[-\*]\s+(.*$)/gm, '<li class="mb-2 ml-4 relative"><span class="absolute -left-4 text-blue-500">•</span>$1</li>')
+                    
+                    // 处理行内代码
+                    .replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-2 py-1 rounded text-sm font-mono">$1</code>')
+                    
+                    // 处理换行
+                    .replace(/\n\n/g, '</p><p class="mb-3">')
+                    .replace(/\n/g, '<br>');
+                
+                // 包装列表项
+                html = html.replace(/(<li.*?<\/li>)/gs, function(match, listItems) {
+                    if (listItems.includes('ml-4')) {
+                        return `<ul class="list-none mb-4">${listItems}</ul>`;
+                    }
+                    return match;
+                });
+                
+                // 包装段落
+                if (!html.includes('<h1>') && !html.includes('<h2>') && !html.includes('<h3>') && !html.includes('<div class="flex')) {
+                    html = '<p class="mb-3">' + html + '</p>';
+                } else {
+                    // 对于包含标题的内容，只在非标题段落加p标签
+                    html = html.replace(/^(?!<[h123]|<div|<ul|<hr|<li)(.+)$/gm, '<p class="mb-3">$1</p>');
+                }
+                
+                return html;
+            }
+            
+            static enhanceReflectionContent(text) {
+                // 专门为复盘内容优化的解析
+                let html = this.parseMarkdown(text);
+                
+                // 增强样式处理
+                html = html
+                    // 为行动计划添加特殊样式
+                    .replace(/<li([^>]*?)>(.*?(?:行动|建议|计划|目标|步骤).*?)<\/li>/gi, 
+                        '<li$1><div class="action-item">$2</div></li>')
+                    
+                    // 为洞察内容添加高亮
+                    .replace(/<p([^>]*?)>(.*?(?:洞察|领悟|发现|意识到).*?)<\/p>/gi, 
+                        '<div class="highlight">$2</div>')
+                    
+                    // 美化表情符号段落
+                    .replace(/<div class="flex items-start mb-3"><span class="text-lg mr-2 mt-1">(🌱|🧠|🌸|🌼)<\/span><div class="flex-1">(.*?)<\/div><\/div>/g,
+                        '<div class="flex items-start mb-4 p-3 bg-white bg-opacity-40 rounded-lg"><span class="text-2xl mr-3">$1</span><div class="flex-1 font-medium">$2</div></div>');
+                
+                return html;
+            }
+        }
+
+        // 页面加载完成后解析内容
+        document.addEventListener('DOMContentLoaded', function() {
+            const rawContent = document.getElementById('rawContent').textContent;
+            const parsedContent = MarkdownParser.enhanceReflectionContent(rawContent);
+            document.getElementById('parsedContent').innerHTML = parsedContent;
+        });
+    </script>
+</body>
+</html>
