@@ -1,0 +1,4 @@
+/* Tailwind CSS 最小化版本 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

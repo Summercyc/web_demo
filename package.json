@@ -1,0 +1,14 @@
+{
+  "name": "dashscope-proxy",
+  "version": "1.0.0",
+  "description": "代理服务器用于阿里云API请求",
+  "main": "proxy_server.js",
+  "scripts": {
+    "start": "node proxy_server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "http-proxy-middleware": "^2.0.6"
+  }
+}
