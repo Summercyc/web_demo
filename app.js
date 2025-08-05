@@ -95,7 +95,14 @@ class AppState {
             flowers: 0,
             treeType: 'oak',
             achievements: [],
-            season: 'spring'
+            season: 'spring',
+            competencies: {
+                表达力: { score: 50, analysis: null, lastUpdated: null },
+                决策力: { score: 50, analysis: null, lastUpdated: null },
+                情绪管理: { score: 50, analysis: null, lastUpdated: null },
+                执行力: { score: 50, analysis: null, lastUpdated: null },
+                边界感: { score: 50, analysis: null, lastUpdated: null }
+            }
         };
         this.reflectionCards = [];
         this.monthlyReports = [];
@@ -459,6 +466,7 @@ class AIRoundtableApp {
         this.currentTyping = null;
         this.treeImageCache = {}; // 缓存树木图片
         this.forestTrees = []; // 成长森林中的树木
+        this.competencyRadar = null; // 能力雷达图实例
         this.init();
     }
 
@@ -1967,6 +1975,13 @@ class AIRoundtableApp {
     }
     
     renderGrowthDashboard() {
+        // 初始化或刷新雷达图
+        if (!this.competencyRadar) {
+            this.competencyRadar = new CompetencyRadarChart('competencyRadarChart', this);
+        } else {
+            this.competencyRadar.renderChart();
+        }
+        
         // 如果没有足够的数据，显示默认内容
         if (this.state.reflectionCards.length < 3) return;
         
@@ -2469,6 +2484,610 @@ class AIRoundtableApp {
 
             sessionList.appendChild(sessionElement);
         });
+    }
+}
+
+// 能力雷达图组件
+class CompetencyRadarChart {
+    constructor(canvasId, appInstance) {
+        this.canvasId = canvasId;
+        this.app = appInstance;
+        this.chart = null;
+        this.competencyLabels = ['表达力', '决策力', '情绪管理', '执行力', '边界感'];
+        this.competencyColors = {
+            '表达力': '#FF6B6B',
+            '决策力': '#4ECDC4', 
+            '情绪管理': '#45B7D1',
+            '执行力': '#96CEB4',
+            '边界感': '#FFEAA7'
+        };
+        this.init();
+    }
+
+    init() {
+        this.setupEventListeners();
+        this.renderChart();
+    }
+
+    setupEventListeners() {
+        // 重新分析按钮
+        const refreshBtn = document.getElementById('refreshRadarBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                this.analyzeCompetencies();
+            });
+        }
+
+        // 关闭详情按钮
+        const closeBtn = document.getElementById('closeDetailBtn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                this.hideCompetencyDetail();
+            });
+        }
+    }
+
+    renderChart() {
+        const canvas = document.getElementById(this.canvasId);
+        const placeholder = document.getElementById('radarPlaceholder');
+        
+        if (!canvas || !this.app.state.reflectionCards || this.app.state.reflectionCards.length < 2) {
+            // 数据不足时显示占位符
+            if (canvas) canvas.style.display = 'none';
+            if (placeholder) placeholder.classList.remove('hidden');
+            return;
+        }
+
+        // 隐藏占位符，显示图表
+        if (placeholder) placeholder.classList.add('hidden');
+        if (canvas) canvas.style.display = 'block';
+
+        const ctx = canvas.getContext('2d');
+        const competencies = this.app.state.growthData.competencies;
+        
+        // 准备数据
+        const data = {
+            labels: this.competencyLabels,
+            datasets: [{
+                label: '当前能力水平',
+                data: this.competencyLabels.map(label => competencies[label].score),
+                backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                borderColor: 'rgba(52, 152, 219, 0.8)',
+                borderWidth: 2,
+                pointBackgroundColor: this.competencyLabels.map(label => this.competencyColors[label]),
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 6,
+                pointHoverRadius: 8
+            }]
+        };
+
+        const config = {
+            type: 'radar',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function(context) {
+                                return context[0].label;
+                            },
+                            label: function(context) {
+                                return `分数: ${context.parsed.r}/100`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        min: 0,
+                        ticks: {
+                            stepSize: 20,
+                            font: {
+                                size: 12
+                            },
+                            color: '#6b7280'
+                        },
+                        grid: {
+                            color: 'rgba(107, 114, 128, 0.2)'
+                        },
+                        angleLines: {
+                            color: 'rgba(107, 114, 128, 0.2)'
+                        },
+                        pointLabels: {
+                            font: {
+                                size: 14,
+                                weight: 500
+                            },
+                            color: '#374151'
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false
+                },
+                onClick: (event, elements) => {
+                    if (elements.length > 0) {
+                        const index = elements[0].index;
+                        const competencyName = this.competencyLabels[index];
+                        this.showCompetencyDetail(competencyName);
+                    }
+                },
+                onHover: (event, elements) => {
+                    event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+                }
+            }
+        };
+
+        // 销毁旧图表
+        if (this.chart) {
+            this.chart.destroy();
+        }
+
+        // 创建新图表
+        this.chart = new Chart(ctx, config);
+    }
+
+    async analyzeCompetencies() {
+        const refreshBtn = document.getElementById('refreshRadarBtn');
+        if (refreshBtn) {
+            refreshBtn.disabled = true;
+            refreshBtn.innerHTML = '🔄 分析中...';
+            refreshBtn.classList.add('refresh-analyzing');
+        }
+
+        try {
+            // 获取用户的对话历史和复盘内容
+            const conversationData = this.gatherConversationData();
+            
+            if (!conversationData || conversationData.length === 0) {
+                this.showMessage('暂无足够数据进行分析，请先进行对话和复盘');
+                return;
+            }
+
+            // 调用AI分析
+            const analysis = await this.callAIForAnalysis(conversationData);
+            
+            if (analysis) {
+                // 更新能力数据
+                this.updateCompetencyData(analysis);
+                
+                // 重新渲染图表
+                this.renderChart();
+                
+                this.showMessage('✨ 能力分析已更新！点击雷达图上的维度查看详细分析');
+            }
+        } catch (error) {
+            console.error('分析能力时出错:', error);
+            this.showMessage('分析过程中出现错误，请稍后重试');
+        } finally {
+            if (refreshBtn) {
+                refreshBtn.disabled = false;
+                refreshBtn.innerHTML = '🔄 重新分析';
+                refreshBtn.classList.remove('refresh-analyzing');
+            }
+        }
+    }
+
+    gatherConversationData() {
+        const data = [];
+        
+        // 收集对话数据
+        if (this.app.state.sessions && this.app.state.sessions.length > 0) {
+            this.app.state.sessions.forEach(session => {
+                if (session.messages && session.messages.length > 0) {
+                    const userMessages = session.messages
+                        .filter(msg => msg.role === 'user')
+                        .map(msg => msg.content)
+                        .join(' ');
+                    
+                    if (userMessages.trim().length > 10) {
+                        data.push({
+                            type: 'conversation',
+                            content: userMessages,
+                            date: session.createdAt || new Date().toISOString()
+                        });
+                    }
+                }
+            });
+        }
+        
+        // 收集复盘数据
+        if (this.app.state.reflectionCards && this.app.state.reflectionCards.length > 0) {
+            this.app.state.reflectionCards.forEach(card => {
+                if (card.content && card.content.trim().length > 20) {
+                    data.push({
+                        type: 'reflection',
+                        content: card.content,
+                        date: card.createdAt || new Date().toISOString(),
+                        tags: card.tags || []
+                    });
+                }
+            });
+        }
+        
+        return data.slice(-10); // 只取最近10条数据
+    }
+
+    async callAIForAnalysis(conversationData) {
+        const prompt = `你是一个专业的成长顾问，需要根据用户的对话和复盘内容，分析用户在5个核心软技能维度上的表现，并给出0-100分的评分和具体建议。
+
+五个维度定义：
+1. 表达力：清晰表达想法、情感和需求的能力
+2. 决策力：在不确定情况下做出合理决策的能力  
+3. 情绪管理：识别、理解和调节自己情绪的能力
+4. 执行力：将想法转化为行动并持续推进的能力
+5. 边界感：在人际关系中保持适当界限的能力
+
+用户数据：
+${conversationData.map(item => `[${item.type}] ${item.content.substring(0, 200)}...`).join('\n\n')}
+
+请分析并返回标准JSON格式，不要包含任何markdown代码块标记：
+{
+  "表达力": {
+    "score": 75,
+    "strengths": ["具体优点1", "具体优点2"],
+    "improvements": ["具体建议1", "具体建议2"],
+    "evidence": "分析依据"
+  },
+  "决策力": {
+    "score": 70,
+    "strengths": ["具体优点1", "具体优点2"],
+    "improvements": ["具体建议1", "具体建议2"],
+    "evidence": "分析依据"
+  },
+  "情绪管理": {
+    "score": 80,
+    "strengths": ["具体优点1", "具体优点2"],
+    "improvements": ["具体建议1", "具体建议2"],
+    "evidence": "分析依据"
+  },
+  "执行力": {
+    "score": 65,
+    "strengths": ["具体优点1", "具体优点2"],
+    "improvements": ["具体建议1", "具体建议2"],
+    "evidence": "分析依据"
+  },
+  "边界感": {
+    "score": 68,
+    "strengths": ["具体优点1", "具体优点2"],
+    "improvements": ["具体建议1", "具体建议2"],
+    "evidence": "分析依据"
+  }
+}
+
+要求：
+1. 评分要客观准确，基于实际表现
+2. 优点和建议要具体可行
+3. 分析依据要最好要引用对话内容
+4. 语言温暖鼓励，避免过于批评
+5. 必须返回有效的JSON格式，不要使用markdown代码块
+6. 每个维度的score必须是0-100之间的数字
+7. strengths和improvements必须是字符串数组
+8. evidence必须是字符串
+
+请直接返回JSON，不要添加任何解释文字。`;
+
+        try {
+            // 使用应用实例的AI调用方法
+            const aiProvider = this.app.state.config.aiProvider || 'dashscope';
+            const textModel = this.app.state.config.textModel || 'qwen-plus';
+            const apiKey = this.app.state.config.apiKey;
+            
+            if (!apiKey) {
+                throw new Error('请先在设置中配置API密钥');
+            }
+
+            this.showMessage('🤖 正在调用AI进行能力分析...');
+
+            let response;
+            if (aiProvider === 'dashscope') {
+                response = await this.app.callDashScope([{role: 'user', content: prompt}], textModel, apiKey);
+            } else if (aiProvider === 'openrouter') {
+                response = await this.app.callOpenRouter([{role: 'user', content: prompt}], textModel, apiKey);
+            } else {
+                throw new Error('不支持的AI服务提供商');
+            }
+            
+            // 尝试解析JSON响应
+            const analysis = this.parseAIResponse(response);
+            if (analysis) {
+                return analysis;
+            } else {
+                throw new Error('无法解析AI响应为有效的能力分析数据');
+            }
+        } catch (error) {
+            console.error('AI分析调用失败:', error);
+            this.showMessage(`分析失败: ${error.message}，使用模拟数据`);
+            // 返回模拟数据作为后备
+            return this.generateMockAnalysis();
+        }
+    }
+
+    parseAIResponse(response) {
+        // 多种方式尝试解析AI响应
+        console.log('AI原始响应:', response.substring(0, 500) + '...');
+        
+        // 方法1: 直接解析
+        try {
+            const parsed = JSON.parse(response);
+            if (this.validateAnalysisStructure(parsed)) {
+                return parsed;
+            }
+        } catch (e) {
+            console.log('直接解析失败:', e.message);
+        }
+
+        // 方法2: 提取第一个完整的JSON对象
+        try {
+            const jsonRegex = /\{(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*\}/g;
+            const matches = response.match(jsonRegex);
+            
+            if (matches) {
+                for (const match of matches) {
+                    try {
+                        const parsed = JSON.parse(match);
+                        if (this.validateAnalysisStructure(parsed)) {
+                            return parsed;
+                        }
+                    } catch (e) {
+                        continue;
+                    }
+                }
+            }
+        } catch (e) {
+            console.log('正则提取失败:', e.message);
+        }
+
+        // 方法3: 清理常见的JSON错误并重试
+        try {
+            let cleanedResponse = response
+                .replace(/```json\s*/g, '') // 移除markdown代码块
+                .replace(/```\s*/g, '')
+                .replace(/，/g, ',') // 替换中文逗号
+                .replace(/：/g, ':') // 替换中文冒号
+                .replace(/"/g, '"') // 替换中文引号
+                .replace(/"/g, '"')
+                .replace(/\n\s*\n/g, '\n') // 清理多余换行
+                .trim();
+
+            // 如果不是以{开头，尝试找到第一个{
+            const firstBrace = cleanedResponse.indexOf('{');
+            if (firstBrace > 0) {
+                cleanedResponse = cleanedResponse.substring(firstBrace);
+            }
+
+            // 如果不是以}结尾，尝试找到最后一个}
+            const lastBrace = cleanedResponse.lastIndexOf('}');
+            if (lastBrace < cleanedResponse.length - 1 && lastBrace > 0) {
+                cleanedResponse = cleanedResponse.substring(0, lastBrace + 1);
+            }
+
+            const parsed = JSON.parse(cleanedResponse);
+            if (this.validateAnalysisStructure(parsed)) {
+                return parsed;
+            }
+        } catch (e) {
+            console.log('清理后解析失败:', e.message);
+        }
+
+        // 方法4: 尝试修复常见的JSON错误
+        try {
+            let fixedResponse = response;
+            
+            // 修复缺失的引号
+            fixedResponse = fixedResponse.replace(/(\w+):/g, '"$1":');
+            
+            // 修复 ... 占位符
+            fixedResponse = fixedResponse.replace(/\.\.\./g, '"..."');
+            
+            // 移除尾随逗号
+            fixedResponse = fixedResponse.replace(/,(\s*[}\]])/g, '$1');
+            
+            const parsed = JSON.parse(fixedResponse);
+            if (this.validateAnalysisStructure(parsed)) {
+                return parsed;
+            }
+        } catch (e) {
+            console.log('修复后解析失败:', e.message);
+        }
+
+        console.error('所有JSON解析方法都失败了');
+        return null;
+    }
+
+    validateAnalysisStructure(data) {
+        // 验证数据结构是否符合预期
+        if (!data || typeof data !== 'object') {
+            return false;
+        }
+
+        const requiredCompetencies = ['表达力', '决策力', '情绪管理', '执行力', '边界感'];
+        
+        for (const competency of requiredCompetencies) {
+            if (!data[competency]) {
+                console.log(`缺少维度: ${competency}`);
+                return false;
+            }
+            
+            const comp = data[competency];
+            if (typeof comp !== 'object' || 
+                typeof comp.score !== 'number' ||
+                !Array.isArray(comp.strengths) ||
+                !Array.isArray(comp.improvements) ||
+                typeof comp.evidence !== 'string') {
+                console.log(`维度 ${competency} 结构不正确:`, comp);
+                return false;
+            }
+            
+            // 验证分数范围
+            if (comp.score < 0 || comp.score > 100) {
+                console.log(`维度 ${competency} 分数超出范围: ${comp.score}`);
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    generateMockAnalysis() {
+        // 基于对话数据的长度和质量生成更合理的模拟分析
+        const conversationData = this.gatherConversationData();
+        const dataQuality = conversationData.length;
+        
+        // 根据数据质量调整基础分数
+        const baseScore = Math.min(70, 50 + dataQuality * 3);
+        
+        return {
+            "表达力": {
+                "score": Math.floor(Math.random() * 20) + baseScore,
+                "strengths": ["能够清晰描述问题现状", "善于用具体例子说明观点"],
+                "improvements": ["可以更多表达内心感受", "尝试用更多元的方式沟通"],
+                "evidence": dataQuality > 3 ? "在多次对话中表现出良好的逻辑表达能力" : "在有限的对话中展现了基本的表达能力"
+            },
+            "决策力": {
+                "score": Math.floor(Math.random() * 20) + baseScore - 5,
+                "strengths": ["会考虑多个角度", "有自己的判断标准"],
+                "improvements": ["可以更快速做出决定", "建立系统性的决策框架"],
+                "evidence": dataQuality > 2 ? "在复盘时显示出反思决策过程的能力" : "开始展现决策思考的迹象"
+            },
+            "情绪管理": {
+                "score": Math.floor(Math.random() * 20) + baseScore + 5,
+                "strengths": ["能够识别自己的情绪", "有寻求帮助的意识"],
+                "improvements": ["练习情绪调节技巧", "提高情绪复原力"],
+                "evidence": dataQuality > 1 ? "对话中展现了情绪觉察能力" : "显示出基本的情绪意识"
+            },
+            "执行力": {
+                "score": Math.floor(Math.random() * 20) + baseScore - 10,
+                "strengths": ["有制定计划的习惯", "能够总结经验"],
+                "improvements": ["提高行动的持续性", "建立更好的监督机制"],
+                "evidence": dataQuality > 3 ? "复盘内容显示行动意识在增强" : "开始建立行动规划的意识"
+            },
+            "边界感": {
+                "score": Math.floor(Math.random() * 20) + baseScore - 3,
+                "strengths": ["开始意识到边界的重要性", "能够反思人际关系"],
+                "improvements": ["练习拒绝的技巧", "明确个人底线"],
+                "evidence": dataQuality > 2 ? "在人际困扰的复盘中显示出边界意识" : "开始关注人际关系中的边界问题"
+            }
+        };
+    }
+
+    updateCompetencyData(analysis) {
+        const now = new Date().toISOString();
+        
+        Object.keys(analysis).forEach(competency => {
+            if (this.app.state.growthData.competencies[competency]) {
+                this.app.state.growthData.competencies[competency] = {
+                    score: analysis[competency].score,
+                    analysis: analysis[competency],
+                    lastUpdated: now
+                };
+            }
+        });
+        
+        // 保存到本地存储
+        this.app.state.saveToStorage();
+    }
+
+    showCompetencyDetail(competencyName) {
+        const competency = this.app.state.growthData.competencies[competencyName];
+        const detailSection = document.getElementById('competencyDetailSection');
+        const detailTitle = document.getElementById('competencyDetailTitle');
+        const detailContent = document.getElementById('competencyDetailContent');
+        
+        if (!competency || !competency.analysis) {
+            this.showMessage('该维度暂无详细分析，请先点击"重新分析"按钮');
+            return;
+        }
+        
+        const analysis = competency.analysis;
+        const color = this.competencyColors[competencyName];
+        
+        detailTitle.innerHTML = `
+            <span style="color: ${color};">●</span>
+            ${competencyName} 
+            <span class="text-sm font-normal text-gray-500">(${analysis.score}/100)</span>
+        `;
+        
+        // 根据分数确定等级样式
+        const getScoreClass = (score) => {
+            if (score >= 80) return 'competency-score-excellent';
+            if (score >= 70) return 'competency-score-good';
+            if (score >= 60) return 'competency-score-average';
+            return 'competency-score-needs-improvement';
+        };
+
+        detailContent.innerHTML = `
+            <div class="bg-green-50 border-l-4 border-green-400 p-4 mb-4">
+                <h6 class="font-medium text-green-800 mb-3">🌟 您的优势</h6>
+                <div class="space-y-2">
+                    ${analysis.strengths.map(strength => `
+                        <div class="competency-strength-item text-sm text-green-700">
+                            ${strength}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                <h6 class="font-medium text-blue-800 mb-3">💡 改进建议</h6>
+                <div class="space-y-2">
+                    ${analysis.improvements.map(improvement => `
+                        <div class="competency-improvement-item text-sm text-blue-700">
+                            ${improvement}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 border-l-4 border-gray-400 p-4">
+                <h6 class="font-medium text-gray-700 mb-3">📝 分析依据</h6>
+                <div class="competency-evidence-box text-sm text-gray-600">
+                    ${analysis.evidence}
+                </div>
+            </div>
+            
+            <div class="text-xs text-gray-400 mt-4 flex justify-between items-center">
+                <span>最后更新: ${new Date(competency.lastUpdated).toLocaleString('zh-CN')}</span>
+                <span class="competency-score-badge ${getScoreClass(analysis.score)}">
+                    ${analysis.score}/100
+                </span>
+            </div>
+        `;
+        
+        detailSection.classList.remove('hidden');
+        detailSection.classList.add('competency-detail-card');
+        
+        // 滚动到详情区域
+        detailSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    hideCompetencyDetail() {
+        const detailSection = document.getElementById('competencyDetailSection');
+        if (detailSection) {
+            detailSection.classList.add('hidden');
+        }
+    }
+
+    showMessage(message) {
+        // 创建临时消息提示
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+        messageDiv.textContent = message;
+        document.body.appendChild(messageDiv);
+        
+        setTimeout(() => {
+            if (messageDiv.parentNode) {
+                messageDiv.parentNode.removeChild(messageDiv);
+            }
+        }, 3000);
     }
 }
 

@@ -698,6 +698,137 @@
         width: 9px;
     }
 }
+
+/* 能力雷达图样式 */
+.competency-radar-container {
+    position: relative;
+}
+
+.competency-detail-card {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.competency-strength-item {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(52, 211, 153, 0.1) 100%);
+    border-left: 3px solid #22c55e;
+    padding: 8px 12px;
+    margin: 6px 0;
+    border-radius: 0 6px 6px 0;
+    transition: all 0.2s ease;
+}
+
+.competency-strength-item:hover {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(52, 211, 153, 0.15) 100%);
+    transform: translateX(4px);
+}
+
+.competency-improvement-item {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 197, 253, 0.1) 100%);
+    border-left: 3px solid #3b82f6;
+    padding: 8px 12px;
+    margin: 6px 0;
+    border-radius: 0 6px 6px 0;
+    transition: all 0.2s ease;
+}
+
+.competency-improvement-item:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(147, 197, 253, 0.15) 100%);
+    transform: translateX(4px);
+}
+
+.competency-evidence-box {
+    background: linear-gradient(135deg, rgba(107, 114, 128, 0.1) 0%, rgba(156, 163, 175, 0.1) 100%);
+    border-left: 3px solid #6b7280;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+    position: relative;
+}
+
+.competency-evidence-box::before {
+    content: '"';
+    position: absolute;
+    left: -8px;
+    top: -5px;
+    font-size: 2rem;
+    color: #6b7280;
+    opacity: 0.3;
+}
+
+.competency-evidence-box::after {
+    content: '"';
+    position: absolute;
+    right: -8px;
+    bottom: -15px;
+    font-size: 2rem;
+    color: #6b7280;
+    opacity: 0.3;
+}
+
+/* 雷达图画布悬停效果 */
+.radar-chart-canvas {
+    transition: all 0.3s ease;
+}
+
+.radar-chart-canvas:hover {
+    transform: scale(1.02);
+    filter: brightness(1.05);
+}
+
+/* 刷新按钮动画 */
+.refresh-analyzing {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* 能力分数徽章样式 */
+.competency-score-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+.competency-score-excellent {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+}
+
+.competency-score-good {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+}
+
+.competency-score-average {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+}
+
+.competency-score-needs-improvement {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+}
 }
 
 .fertilizer {

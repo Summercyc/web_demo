@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>能力雷达图功能演示</title>
+    <link rel="stylesheet" href="tailwind.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        }
+        
+        .demo-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .demo-btn {
+            background: white;
+            color: #667eea;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .demo-btn:hover {
+            background: #f8f9fa;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="text-center mb-8">
+            <h1 class="text-white text-3xl font-bold mb-4">💫 能力雷达图功能演示</h1>
+            <p class="text-white text-lg mb-6">这是为您的成长仪表盘开发的新功能</p>
+            <div class="space-x-4">
+                <button class="demo-btn" onclick="simulateData()">🎲 模拟测试数据</button>
+                <button class="demo-btn" onclick="showRadarChart()">📊 显示雷达图</button>
+                <button class="demo-btn" onclick="testInteraction()">🖱️ 测试交互</button>
+            </div>
+        </div>
+
+        <!-- 雷达图区域 -->
+        <div class="mb-6">
+            <div class="macaron-card blue relative">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="text-sm text-gray-600">五个核心软技能维度分析</div>
+                    <button id="refreshRadarBtn" class="text-blue-500 hover:text-blue-700 text-sm px-3 py-1 border border-blue-300 rounded-full hover:bg-blue-50 transition-all">
+                        🔄 重新分析
+                    </button>
+                </div>
+                <div class="h-80 flex items-center justify-center">
+                    <canvas id="competencyRadarChart" class="radar-chart-canvas" width="300" height="300"></canvas>
+                </div>
+                <div id="radarPlaceholder" class="text-center">
+                    <div class="text-4xl mb-3">📊</div>
+                    <div class="text-lg mb-1">点击"模拟测试数据"开始演示</div>
+                    <div class="text-sm text-gray-500">系统将分析您的能力发展状况</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 能力详情展示区域 -->
+        <div id="competencyDetailSection" class="mb-6 hidden">
+            <div class="macaron-card purple">
+                <div class="flex items-center justify-between mb-4">
+                    <h5 id="competencyDetailTitle" class="font-semibold text-lg">能力详情</h5>
+                    <button id="closeDetailBtn" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+                </div>
+                <div id="competencyDetailContent" class="space-y-4">
+                    <!-- 动态内容将在这里填充 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 功能说明 -->
+        <div class="macaron-card green">
+            <h3 class="text-lg font-bold mb-4">🎯 功能特性</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                    <h4 class="font-semibold mb-2 text-green-700">✨ 核心功能</h4>
+                    <ul class="space-y-1 text-gray-700">
+                        <li>• 动态展示五个软技能维度</li>
+                        <li>• AI 自动分析对话和复盘内容</li>
+                        <li>• 实时更新能力评分（0-100分）</li>
+                        <li>• 可视化雷达图表展示</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-2 text-green-700">🖱️ 交互体验</h4>
+                    <ul class="space-y-1 text-gray-700">
+                        <li>• 点击雷达图维度查看详情</li>
+                        <li>• 显示优势和改进建议</li>
+                        <li>• 展示分析依据和更新时间</li>
+                        <li>• 手动触发重新分析功能</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟应用状态
+        const mockAppState = {
+            growthData: {
+                competencies: {
+                    表达力: { score: 50, analysis: null, lastUpdated: null },
+                    决策力: { score: 50, analysis: null, lastUpdated: null },
+                    情绪管理: { score: 50, analysis: null, lastUpdated: null },
+                    执行力: { score: 50, analysis: null, lastUpdated: null },
+                    边界感: { score: 50, analysis: null, lastUpdated: null }
+                }
+            },
+            reflectionCards: [],
+            saveToStorage: () => {
+                console.log('演示模式：保存数据到本地存储');
+            }
+        };
+
+        // 模拟应用实例
+        const mockApp = {
+            state: mockAppState,
+            callDashScope: async () => { throw new Error('演示模式下不调用真实API'); },
+            callOpenRouter: async () => { throw new Error('演示模式下不调用真实API'); }
+        };
+
+        let radarChart = null;
+
+        function simulateData() {
+            // 模拟一些复盘卡片数据
+            mockAppState.reflectionCards = [
+                { content: "今天在会议上表达观点时...", createdAt: new Date().toISOString() },
+                { content: "面对团队冲突的处理...", createdAt: new Date().toISOString() },
+                { content: "项目决策的复盘...", createdAt: new Date().toISOString() }
+            ];
+
+            // 生成模拟分析数据
+            const mockAnalysis = {
+                "表达力": {
+                    "score": Math.floor(Math.random() * 30) + 65,
+                    "strengths": ["能够清晰描述问题现状", "善于用具体例子说明观点"],
+                    "improvements": ["可以更多表达内心感受", "尝试用更多元的方式沟通"],
+                    "evidence": "在演示场景中表现出良好的逻辑表达能力"
+                },
+                "决策力": {
+                    "score": Math.floor(Math.random() * 30) + 60,
+                    "strengths": ["会考虑多个角度", "有自己的判断标准"],
+                    "improvements": ["可以更快速做出决定", "建立系统性的决策框架"],
+                    "evidence": "演示时显示出对功能规划的思考能力"
+                },
+                "情绪管理": {
+                    "score": Math.floor(Math.random() * 30) + 70,
+                    "strengths": ["能够识别自己的情绪", "有寻求帮助的意识"],
+                    "improvements": ["练习情绪调节技巧", "提高情绪复原力"],
+                    "evidence": "在功能演示中展现了稳定的情绪状态"
+                },
+                "执行力": {
+                    "score": Math.floor(Math.random() * 30) + 55,
+                    "strengths": ["有制定计划的习惯", "能够总结经验"],
+                    "improvements": ["提高行动的持续性", "建立更好的监督机制"],
+                    "evidence": "通过完成雷达图功能开发体现出执行能力"
+                },
+                "边界感": {
+                    "score": Math.floor(Math.random() * 30) + 60,
+                    "strengths": ["开始意识到边界的重要性", "能够反思人际关系"],
+                    "improvements": ["练习拒绝的技巧", "明确个人底线"],
+                    "evidence": "在功能设计中考虑了用户体验边界"
+                }
+            };
+
+            // 更新模拟数据
+            const now = new Date().toISOString();
+            Object.keys(mockAnalysis).forEach(competency => {
+                mockAppState.growthData.competencies[competency] = {
+                    score: mockAnalysis[competency].score,
+                    analysis: mockAnalysis[competency],
+                    lastUpdated: now
+                };
+            });
+
+            showMessage('✅ 测试数据已生成！现在可以显示雷达图了');
+        }
+
+        function showRadarChart() {
+            if (!radarChart) {
+                radarChart = new CompetencyRadarChart('competencyRadarChart', mockApp);
+            } else {
+                radarChart.renderChart();
+            }
+            showMessage('📊 雷达图已生成！点击图表上的维度查看详细分析');
+        }
+
+        function testInteraction() {
+            if (!radarChart) {
+                showMessage('⚠️ 请先显示雷达图');
+                return;
+            }
+            
+            // 模拟点击第一个维度
+            radarChart.showCompetencyDetail('表达力');
+            showMessage('🖱️ 自动展示"表达力"维度详情');
+        }
+
+        function showMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+            messageDiv.textContent = message;
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.parentNode.removeChild(messageDiv);
+                }
+            }, 3000);
+        }
+
+        // 从app.js复制CompetencyRadarChart类（简化版）
+        class CompetencyRadarChart {
+            constructor(canvasId, appInstance) {
+                this.canvasId = canvasId;
+                this.app = appInstance;
+                this.chart = null;
+                this.competencyLabels = ['表达力', '决策力', '情绪管理', '执行力', '边界感'];
+                this.competencyColors = {
+                    '表达力': '#FF6B6B',
+                    '决策力': '#4ECDC4', 
+                    '情绪管理': '#45B7D1',
+                    '执行力': '#96CEB4',
+                    '边界感': '#FFEAA7'
+                };
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.renderChart();
+            }
+
+            setupEventListeners() {
+                const refreshBtn = document.getElementById('refreshRadarBtn');
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', () => {
+                        simulateData();
+                        setTimeout(() => this.renderChart(), 500);
+                    });
+                }
+
+                const closeBtn = document.getElementById('closeDetailBtn');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => {
+                        this.hideCompetencyDetail();
+                    });
+                }
+            }
+
+            renderChart() {
+                const canvas = document.getElementById(this.canvasId);
+                const placeholder = document.getElementById('radarPlaceholder');
+                
+                if (!canvas || !this.app.state.reflectionCards || this.app.state.reflectionCards.length < 1) {
+                    if (canvas) canvas.style.display = 'none';
+                    if (placeholder) placeholder.classList.remove('hidden');
+                    return;
+                }
+
+                if (placeholder) placeholder.classList.add('hidden');
+                if (canvas) canvas.style.display = 'block';
+
+                const ctx = canvas.getContext('2d');
+                const competencies = this.app.state.growthData.competencies;
+                
+                const data = {
+                    labels: this.competencyLabels,
+                    datasets: [{
+                        label: '当前能力水平',
+                        data: this.competencyLabels.map(label => competencies[label].score),
+                        backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                        borderColor: 'rgba(52, 152, 219, 0.8)',
+                        borderWidth: 2,
+                        pointBackgroundColor: this.competencyLabels.map(label => this.competencyColors[label]),
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }]
+                };
+
+                const config = {
+                    type: 'radar',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    title: function(context) { return context[0].label; },
+                                    label: function(context) { return `分数: ${context.parsed.r}/100`; }
+                                }
+                            }
+                        },
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 100,
+                                min: 0,
+                                ticks: { stepSize: 20, font: { size: 12 }, color: '#6b7280' },
+                                grid: { color: 'rgba(107, 114, 128, 0.2)' },
+                                angleLines: { color: 'rgba(107, 114, 128, 0.2)' },
+                                pointLabels: { font: { size: 14, weight: 500 }, color: '#374151' }
+                            }
+                        },
+                        interaction: { intersect: false },
+                        onClick: (event, elements) => {
+                            if (elements.length > 0) {
+                                const index = elements[0].index;
+                                const competencyName = this.competencyLabels[index];
+                                this.showCompetencyDetail(competencyName);
+                            }
+                        },
+                        onHover: (event, elements) => {
+                            event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+                        }
+                    }
+                };
+
+                if (this.chart) this.chart.destroy();
+                this.chart = new Chart(ctx, config);
+            }
+
+            showCompetencyDetail(competencyName) {
+                const competency = this.app.state.growthData.competencies[competencyName];
+                const detailSection = document.getElementById('competencyDetailSection');
+                const detailTitle = document.getElementById('competencyDetailTitle');
+                const detailContent = document.getElementById('competencyDetailContent');
+                
+                if (!competency || !competency.analysis) {
+                    showMessage('该维度暂无详细分析');
+                    return;
+                }
+                
+                const analysis = competency.analysis;
+                const color = this.competencyColors[competencyName];
+                
+                detailTitle.innerHTML = `
+                    <span style="color: ${color};">●</span>
+                    ${competencyName} 
+                    <span class="text-sm font-normal text-gray-500">(${analysis.score}/100)</span>
+                `;
+                
+                const getScoreClass = (score) => {
+                    if (score >= 80) return 'competency-score-excellent';
+                    if (score >= 70) return 'competency-score-good';
+                    if (score >= 60) return 'competency-score-average';
+                    return 'competency-score-needs-improvement';
+                };
+
+                detailContent.innerHTML = `
+                    <div class="bg-green-50 border-l-4 border-green-400 p-4 mb-4">
+                        <h6 class="font-medium text-green-800 mb-3">🌟 您的优势</h6>
+                        <div class="space-y-2">
+                            ${analysis.strengths.map(strength => `
+                                <div class="competency-strength-item text-sm text-green-700">
+                                    ${strength}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                        <h6 class="font-medium text-blue-800 mb-3">💡 改进建议</h6>
+                        <div class="space-y-2">
+                            ${analysis.improvements.map(improvement => `
+                                <div class="competency-improvement-item text-sm text-blue-700">
+                                    ${improvement}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 border-l-4 border-gray-400 p-4">
+                        <h6 class="font-medium text-gray-700 mb-3">📝 分析依据</h6>
+                        <div class="competency-evidence-box text-sm text-gray-600">
+                            ${analysis.evidence}
+                        </div>
+                    </div>
+                    
+                    <div class="text-xs text-gray-400 mt-4 flex justify-between items-center">
+                        <span>最后更新: ${new Date(competency.lastUpdated).toLocaleString('zh-CN')}</span>
+                        <span class="competency-score-badge ${getScoreClass(analysis.score)}">
+                            ${analysis.score}/100
+                        </span>
+                    </div>
+                `;
+                
+                detailSection.classList.remove('hidden');
+                detailSection.classList.add('competency-detail-card');
+                detailSection.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            hideCompetencyDetail() {
+                const detailSection = document.getElementById('competencyDetailSection');
+                if (detailSection) {
+                    detailSection.classList.add('hidden');
+                }
+            }
+
+            parseAIResponse(response) {
+                // 简化版的AI响应解析，用于演示
+                try {
+                    return JSON.parse(response);
+                } catch (e) {
+                    console.log('演示模式：JSON解析失败，返回null');
+                    return null;
+                }
+            }
+
+            validateAnalysisStructure(data) {
+                // 简化版的结构验证，用于演示
+                if (!data || typeof data !== 'object') return false;
+                const required = ['表达力', '决策力', '情绪管理', '执行力', '边界感'];
+                return required.every(comp => data[comp] && typeof data[comp].score === 'number');
+            }
+        }
+    </script>
+</body>
+</html>

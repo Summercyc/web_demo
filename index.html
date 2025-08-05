@@ -52,6 +52,7 @@
         });
     </script>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-light-cream font-sans">
     <div id="app" class="flex h-screen">
@@ -443,12 +444,34 @@
             <!-- 成长仪表盘区域 -->
             <div id="growthDashboardTab" class="growth-content hidden">
                 <div class="mb-6">
-                    <h4 class="font-medium mb-3 text-gray-700">我的成长雷达图</h4>
-                    <div class="macaron-card blue h-64 flex items-center justify-center">
-                        <div class="text-center">
-                            <div class="text-5xl mb-3">📊</div>
+                    <h4 class="font-medium mb-3 text-gray-700">💫 能力雷达图</h4>
+                    <div class="macaron-card blue relative">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="text-sm text-gray-600">五个核心软技能维度分析</div>
+                            <button id="refreshRadarBtn" class="text-blue-500 hover:text-blue-700 text-sm px-3 py-1 border border-blue-300 rounded-full hover:bg-blue-50 transition-all">
+                                🔄 重新分析
+                            </button>
+                        </div>
+                        <div class="h-80 flex items-center justify-center">
+                            <canvas id="competencyRadarChart" class="radar-chart-canvas" width="300" height="300"></canvas>
+                        </div>
+                        <div id="radarPlaceholder" class="text-center hidden">
+                            <div class="text-4xl mb-3">📊</div>
                             <div class="text-lg mb-1">数据收集中</div>
-                            <div class="text-sm text-gray-500">随着复盘卡片的增加，这里将显示您的成长雷达图</div>
+                            <div class="text-sm text-gray-500">请先进行对话和复盘，系统将分析您的能力发展</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 能力详情展示区域 -->
+                <div id="competencyDetailSection" class="mb-6 hidden">
+                    <div class="macaron-card purple">
+                        <div class="flex items-center justify-between mb-4">
+                            <h5 id="competencyDetailTitle" class="font-semibold text-lg">能力详情</h5>
+                            <button id="closeDetailBtn" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+                        </div>
+                        <div id="competencyDetailContent" class="space-y-4">
+                            <!-- 动态内容将在这里填充 -->
                         </div>
                     </div>
                 </div>
