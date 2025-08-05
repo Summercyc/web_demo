@@ -888,6 +888,37 @@
         0 12px 20px rgba(0, 0, 0, 0.08);
 }
 
+/* 修复模态框布局 */
+.modal-card-detail {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    max-height: 85vh !important;
+}
+
+.modal-card-detail .reflection-card-content {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    margin-bottom: 1.5rem !important;
+}
+
+.modal-card-detail .card-footer {
+    margin-top: auto !important;
+    flex-shrink: 0 !important;
+}
+
+/* 确保标签区域正确布局 */
+.card-footer .flex {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+    align-items: center !important;
+}
+
+.card-footer .macaron-tag.ml-auto {
+    margin-left: auto !important;
+}
+
 /* 响应式字体大小调整 */
 @media (max-width: 768px) {
     .macaron-title {

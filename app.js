@@ -1856,10 +1856,11 @@ class AIRoundtableApp {
             let title = card.title;
             let content = card.content;
             
-            // 尝试从内容中提取标题
-            const titleMatch = card.content.match(/^#*\s*(.*?)[\n\r]/);
+            // 尝试从内容中提取标题，并解析Markdown
+            const titleMatch = card.content.match(/^[\*\#]*\s*(.*?)[\n\r]/);
             if (titleMatch) {
-                title = titleMatch[1];
+                // 清理标题中的Markdown符号
+                title = titleMatch[1].replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/#+\s*/, '');
                 content = card.content.replace(titleMatch[0], '');
             }
             
@@ -1902,37 +1903,45 @@ class AIRoundtableApp {
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
         
+        // 清理卡片标题中的Markdown符号
+        const cleanTitle = card.title.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/#+\s*/, '');
+        
         modal.innerHTML = `
-            <div class="macaron-card ${cardColor} w-[700px] max-w-90vw max-h-[85vh] overflow-hidden">
-                <div class="flex justify-between items-start mb-6">
-                    <div class="flex-1">
-                        <h3 class="macaron-title mb-2">${card.title}</h3>
-                        <span class="text-sm text-gray-500 font-medium">${new Date(card.createdAt).toLocaleDateString('zh-CN', { 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric',
-                            weekday: 'long'
-                        })}</span>
-                    </div>
-                </div>
-                
-                <div class="reflection-card-content mb-6">
-                    <div class="reflection-content">${MarkdownParser.enhanceReflectionContent(card.content)}</div>
-                </div>
-                
-                <div class="flex flex-wrap gap-2 mb-6 border-t border-white border-opacity-30 pt-4">
+            <div class="w-[700px] max-w-90vw max-h-[85vh] relative">
+                <!-- 与对话部分完全一致的复盘卡片结构 -->
+                <div class="macaron-card ${cardColor} mb-4">
+                    <div class="macaron-title">${cleanTitle}</div>
+                    
+                    <!-- 卡片元信息 -->
+                    <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-xl p-4 mb-4">
+                        <div class="flex flex-wrap gap-2 items-center justify-between">
+                            <div class="flex flex-wrap gap-2">
                     ${card.tags.map(tag => `
-                        <span class="macaron-tag ${cardColor}">#${tag}</span>
+                                    <span class="macaron-tag ${cardColor}">#${tag}</span>
                     `).join('')}
-                    <span class="macaron-tag ${card.type === 'deep' ? 'purple' : 'orange'} ml-auto">
-                        ${card.type === 'deep' ? '🧠 深潜' : '⚡ 闪电'}复盘
-                    </span>
+                                <span class="macaron-tag ${card.type === 'deep' ? 'purple' : 'orange'}">
+                                    ${card.type === 'deep' ? '🧠 深潜' : '⚡ 闪电'}复盘
+                                </span>
+                            </div>
+                            <span class="text-sm text-white font-medium">${new Date(card.createdAt).toLocaleDateString('zh-CN', { 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric',
+                                weekday: 'long'
+                            })}</span>
+                        </div>
                 </div>
                 
-                <div class="flex justify-end border-t border-white border-opacity-30 pt-4">
-                    <button class="close-card-detail py-3 px-8 bg-white bg-opacity-80 text-gray-700 rounded-full hover:bg-white hover:shadow-lg transition-all font-medium">
-                        关闭
-                    </button>
+                    <div class="reflection-card-content">
+                        <div class="reflection-content">${MarkdownParser.enhanceReflectionContent(card.content)}</div>
+                        
+                        <!-- 关闭按钮放在内容右下方 -->
+                        <div class="flex justify-end mt-6">
+                            <button class="close-card-detail py-3 px-8 bg-white bg-opacity-90 text-gray-700 rounded-full hover:bg-white hover:shadow-lg transition-all font-medium">
+                                关闭
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
