@@ -33,6 +33,237 @@
     overflow: hidden;
 }
 
+/* 月度报告专用样式 */
+.report-metric {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    transition: all 0.3s ease;
+}
+
+.report-metric:hover {
+    background: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+}
+
+.report-metric-icon {
+    font-size: 2rem;
+    margin-right: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.report-metric-content {
+    flex: 1;
+}
+
+.report-metric-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 4px;
+}
+
+.report-metric-label {
+    font-size: 0.875rem;
+    color: #6B7280;
+}
+
+.report-breakthrough-item {
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    border-left: 4px solid #8B5CF6;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.report-breakthrough-item:hover {
+    background: rgba(255, 255, 255, 0.5);
+    transform: translateX(4px);
+}
+
+.report-quote {
+    font-style: italic;
+    font-size: 1.125rem;
+    color: #4B5563;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 12px;
+    border-left: 4px solid #F59E0B;
+    position: relative;
+}
+
+.report-quote::before {
+    content: '"';
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    font-size: 2rem;
+    color: #F59E0B;
+    opacity: 0.5;
+}
+
+.ai-partner-message {
+    display: flex;
+    align-items: flex-start;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    margin-bottom: 12px;
+}
+
+.ai-partner-avatar {
+    font-size: 1.5rem;
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.ai-partner-content {
+    flex: 1;
+}
+
+.ai-partner-name {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 4px;
+    font-size: 0.875rem;
+}
+
+.ai-partner-text {
+    color: #4B5563;
+    line-height: 1.5;
+}
+
+.achievement-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #F59E0B, #F97316);
+    color: white;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin: 4px;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    transition: all 0.3s ease;
+}
+
+.achievement-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+}
+
+.achievement-badge-icon {
+    margin-right: 6px;
+    font-size: 1rem;
+}
+
+.report-share-canvas {
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* 深度链接样式 */
+.deep-link {
+    color: #3B82F6;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.deep-link:hover {
+    border-bottom-color: #3B82F6;
+    background: rgba(59, 130, 246, 0.1);
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+/* 报告加载动画 */
+.report-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+}
+
+.report-loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #E5E7EB;
+    border-top: 4px solid #3B82F6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 深度链接高亮效果 */
+.highlight {
+    background: linear-gradient(135deg, rgba(255, 209, 220, 0.6), rgba(191, 223, 255, 0.6)) !important;
+    animation: highlightPulse 2s ease-in-out;
+    border: 2px solid #60A5FA;
+    border-radius: 8px;
+}
+
+@keyframes highlightPulse {
+    0%, 100% { 
+        background-color: rgba(96, 165, 250, 0.1);
+        transform: scale(1);
+    }
+    50% { 
+        background-color: rgba(96, 165, 250, 0.2);
+        transform: scale(1.02);
+    }
+}
+
+/* 消息项的深度链接样式 */
+.message-item {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.message-item:hover {
+    background-color: rgba(59, 130, 246, 0.05);
+}
+
+.message-item[data-message-index] {
+    position: relative;
+}
+
+.message-item[data-message-index]:before {
+    content: '🔗';
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    font-size: 12px;
+}
+
+.message-item[data-message-index]:hover:before {
+    opacity: 0.5;
+}
+
 .macaron-card::before {
     content: '';
     position: absolute;

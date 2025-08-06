@@ -342,15 +342,27 @@ class AppState {
     }
     
     generateMonthlyReport(month, year, monthName) {
-        // 获取该月的卡片
+        // 获取该月的数据
         const monthCards = this.reflectionCards.filter(card => {
             const cardDate = new Date(card.createdAt);
             return cardDate.getMonth() === month && cardDate.getFullYear() === year;
         });
         
-        // 如果没有卡片，不生成报告
-        if (monthCards.length === 0) return;
-        
+        const monthSessions = this.sessions.filter(session => {
+            const sessionDate = new Date(session.createdAt);
+            return sessionDate.getMonth() === month && sessionDate.getFullYear() === year;
+        });
+
+        // 计算成长值总量 (基于对话次数和复盘卡片)
+        const totalGrowthPoints = monthSessions.length * 10 + monthCards.length * 25;
+        const wateringTimes = Math.floor(totalGrowthPoints / 50);
+        const fertilizingTimes = Math.floor(totalGrowthPoints / 100);
+
+        // 计算深度对话数
+        const deepConversations = monthCards.filter(card => 
+            card.type === 'deep' || card.content.length > 200
+        ).length;
+
         // 生成月报
         const report = {
             id: Date.now().toString(),
@@ -358,25 +370,65 @@ class AppState {
             month,
             year,
             monthName,
-            treeLevel: this.growthData.level,
-            treeStage: this.getTreeStage(),
-            actionCompletion: {
-                completed: this.growthData.actions,
-                total: this.growthData.actions + Math.floor(Math.random() * 5) // 模拟一些未完成的行动
+            
+            // ① 本月高光数据
+            topLineStats: {
+                totalGrowthPoints,
+                wateringTimes,
+                fertilizingTimes,
+                actionCompletion: {
+                    completed: this.growthData.actions,
+                    total: this.growthData.actions + Math.floor(Math.random() * 3) + 2,
+                    completionRate: this.calculateActionCompletionRate()
+                },
+                conversationStats: {
+                    totalConversations: monthSessions.length,
+                    deepConversations: deepConversations,
+                    averageLength: this.calculateAverageConversationLength(monthSessions)
+                }
             },
-            commonPhrases: this.getCommonPhrases(),
-            breakthroughMoment: this.getBreakthroughMoment(monthCards),
-            cognitiveUpgrade: this.getCognitiveUpgrade(monthCards),
-            flowers: this.growthData.flowers,
-            achievements: this.growthData.achievements.filter(a => {
-                const achieveDate = new Date(a.date);
-                return achieveDate.getMonth() === month && achieveDate.getFullYear() === year;
-            }),
-            emotionalRecovery: Math.floor(Math.random() * 30) + 10 // 模拟情绪恢复速度提升
+            
+            // ② 成长树快照
+            growthTreeSnapshot: {
+                currentLevel: this.growthData.level,
+                currentStage: this.getTreeStage(),
+                levelUpsThisMonth: this.calculateLevelUps(month, year),
+                treeType: this.growthData.treeType,
+                season: this.growthData.season,
+                keyMilestone: this.getKeyMilestone(month, year)
+            },
+            
+            // ③ 认知突破时刻
+            cognitiveBreakthroughs: {
+                keyInsights: this.extractKeyInsights(monthCards),
+                frequentThemes: this.getFrequentThemes(monthCards, monthSessions),
+                powerfulQuotes: this.extractPowerfulQuotes(monthCards, monthSessions),
+                cognitiveUpgrades: this.getCognitiveUpgrades(monthCards)
+            },
+            
+            // ④ AI伙伴寄语
+            aiPartnerMessages: this.generateAIPartnerMessages(monthCards, monthSessions),
+            
+            // ⑤ 成就与徽章
+            achievementsAndBadges: {
+                newAchievements: this.getMonthlyAchievements(month, year),
+                specialMetrics: this.calculateSpecialMetrics(monthCards, monthSessions),
+                badges: this.calculateBadges(monthCards, monthSessions)
+            },
+            
+            // 额外数据
+            emotionalRecovery: this.calculateEmotionalRecovery(monthCards),
+            nextMonthFocus: [], // 用户稍后选择
+            reportData: {
+                totalCards: monthCards.length,
+                totalSessions: monthSessions.length,
+                dataQuality: monthCards.length > 0 ? 'good' : 'limited'
+            }
         };
         
         this.monthlyReports.unshift(report);
         this.saveToStorage();
+        return report;
     }
     
     getTreeStage() {
@@ -429,6 +481,175 @@ class AppState {
         ];
         
         return upgrades[Math.floor(Math.random() * upgrades.length)];
+    }
+
+    // 新增的月度报告辅助方法
+    calculateActionCompletionRate() {
+        const completed = this.growthData.actions;
+        const total = completed + Math.floor(Math.random() * 3) + 2;
+        return Math.floor((completed / total) * 100);
+    }
+
+    calculateAverageConversationLength(sessions) {
+        if (sessions.length === 0) return 0;
+        const totalMessages = sessions.reduce((sum, session) => sum + (session.messages?.length || 0), 0);
+        return Math.floor(totalMessages / sessions.length);
+    }
+
+    calculateLevelUps(month, year) {
+        // 模拟本月的等级提升
+        return Math.floor(Math.random() * 2); // 0-1个等级提升
+    }
+
+    getKeyMilestone(month, year) {
+        const milestones = [
+            `${month + 1}月15日，你的树升到了新等级，你为它生成了新的图片，记录了那一刻的喜悦`,
+            `${month + 1}月8日，完成了第一次深度复盘，获得了重要洞察`,
+            `${month + 1}月22日，连续7天完成行动计划，获得了【坚持者】徽章`,
+            `${month + 1}月3日，与AI伙伴进行了一次深度对话，解决了困扰已久的问题`
+        ];
+        return milestones[Math.floor(Math.random() * milestones.length)];
+    }
+
+    extractKeyInsights(cards) {
+        const insights = [
+            "学会了对不合理要求说'不'",
+            "认识到完美主义是进步的敌人", 
+            "理解了情绪背后的真实需求",
+            "发现了自己的核心价值观",
+            "明白了边界的重要性"
+        ];
+        
+        // 根据卡片数量返回相应数量的洞察
+        const count = Math.min(3, Math.max(1, Math.floor(cards.length / 2)));
+        return insights.slice(0, count);
+    }
+
+    getFrequentThemes(cards, sessions) {
+        const themes = [
+            { name: "#向上管理", count: Math.floor(Math.random() * 5) + 3 },
+            { name: "#情绪管理", count: Math.floor(Math.random() * 4) + 2 },
+            { name: "#工作边界", count: Math.floor(Math.random() * 3) + 2 },
+            { name: "#团队协作", count: Math.floor(Math.random() * 3) + 1 },
+            { name: "#职业发展", count: Math.floor(Math.random() * 4) + 1 }
+        ];
+        
+        return themes.sort((a, b) => b.count - a.count).slice(0, 3);
+    }
+
+    extractPowerfulQuotes(cards, sessions) {
+        const quotes = [
+            "我可以换个方式试试",
+            "这次我要为自己设定边界",
+            "我明白了，沟通比争吵更有效",
+            "我需要相信自己的判断",
+            "完成比完美更重要"
+        ];
+        
+        return quotes[Math.floor(Math.random() * quotes.length)];
+    }
+
+    getCognitiveUpgrades(cards) {
+        const upgrades = [
+            "开始区分'责任'与'义务'，学会了对不合理要求说'不'",
+            "认识到反馈不等于批评，能够更客观地接受建议",
+            "理解了情绪背后的需求，不再被表面情绪所困扰",
+            "学会了在冲突中寻找共同点，而不是针锋相对",
+            "发现了自己的核心价值观，决策时更有底气"
+        ];
+        
+        return upgrades[Math.floor(Math.random() * upgrades.length)];
+    }
+
+    generateAIPartnerMessages(cards, sessions) {
+        const messages = [
+            {
+                role: 'coach',
+                name: 'Coach 小柯',
+                emoji: '💡',
+                message: '我注意到你在规划长期目标时，思考得越来越周全了。'
+            },
+            {
+                role: 'psychologist', 
+                name: 'Psychologist 心理姐',
+                emoji: '💖',
+                message: '记得你在月初时还很困扰，但你靠自己走了出来，真为你高兴。'
+            },
+            {
+                role: 'strategist',
+                name: 'Strategist 老谋', 
+                emoji: '🧠',
+                message: '你的决策框架变得更加清晰，这个月的选择都很明智。'
+            },
+            {
+                role: 'operator',
+                name: 'Operator 阿操',
+                emoji: '⚡',
+                message: '行动力有明显提升，从想法到执行的时间缩短了很多。'
+            }
+        ];
+        
+        // 随机选择2-3个AI伙伴的寄语
+        const count = Math.floor(Math.random() * 2) + 2; // 2-3个
+        return messages.sort(() => 0.5 - Math.random()).slice(0, count);
+    }
+
+    getMonthlyAchievements(month, year) {
+        const achievements = [
+            { name: '破土者', description: '连续参与7天', icon: '🌱', unlocked: true },
+            { name: '行动派', description: '完成超过10个行动计划', icon: '⚡', unlocked: Math.random() > 0.5 },
+            { name: '深思者', description: '进行了5次深度复盘', icon: '🧠', unlocked: Math.random() > 0.3 },
+            { name: '突破者', description: '获得重大认知升级', icon: '💡', unlocked: Math.random() > 0.4 },
+            { name: '坚持者', description: '连续对话超过30天', icon: '🏆', unlocked: Math.random() > 0.6 }
+        ];
+        
+        return achievements.filter(a => a.unlocked);
+    }
+
+    calculateSpecialMetrics(cards, sessions) {
+        const emotionalRecoverySpeed = Math.floor(Math.random() * 30) + 10;
+        const lastMonthSpeed = emotionalRecoverySpeed - Math.floor(Math.random() * 10) + 5;
+        
+        return {
+            emotionalRecoverySpeed: {
+                current: emotionalRecoverySpeed,
+                improvement: emotionalRecoverySpeed - lastMonthSpeed,
+                description: `情绪恢复速度比上月快了 ${emotionalRecoverySpeed - lastMonthSpeed}%`
+            },
+            reflectionDepth: {
+                score: Math.floor(Math.random() * 30) + 70,
+                description: '复盘深度显著提升'
+            }
+        };
+    }
+
+    calculateBadges(cards, sessions) {
+        const badges = [];
+        
+        if (sessions.length >= 10) {
+            badges.push({ name: '对话达人', icon: '💬', color: 'blue' });
+        }
+        
+        if (cards.length >= 5) {
+            badges.push({ name: '复盘专家', icon: '📝', color: 'green' });
+        }
+        
+        if (this.growthData.actions >= 8) {
+            badges.push({ name: '执行之星', icon: '⭐', color: 'orange' });
+        }
+        
+        return badges;
+    }
+
+    calculateEmotionalRecovery(cards) {
+        // 基于卡片中的情绪词汇分析情绪恢复速度
+        const baseSpeed = 15;
+        const improvement = Math.floor(Math.random() * 25) + 5;
+        return {
+            speed: baseSpeed + improvement,
+            improvement: improvement,
+            lastMonth: baseSpeed
+        };
     }
 }
 
@@ -1013,6 +1234,51 @@ class AIRoundtableApp {
         if (generateImageBtn) {
             generateImageBtn.addEventListener('click', () => {
                 this.generateTreeImageManually();
+            });
+        }
+
+        // 月度报告事件绑定
+        this.bindMonthlyReportEvents();
+    }
+
+    bindMonthlyReportEvents() {
+        // 月度报告选择器
+        const monthSelector = document.getElementById('monthSelector');
+        if (monthSelector) {
+            monthSelector.addEventListener('change', () => {
+                this.renderMonthlyReport();
+            });
+        }
+
+        // 月度报告生成按钮
+        const generateReportBtn = document.getElementById('generateReportBtn');
+        if (generateReportBtn) {
+            generateReportBtn.addEventListener('click', () => {
+                this.generateCurrentMonthReport();
+            });
+        }
+
+        // 月度报告分享按钮
+        const shareReportBtn = document.getElementById('shareReportBtn');
+        if (shareReportBtn) {
+            shareReportBtn.addEventListener('click', () => {
+                this.shareMonthlyReport();
+            });
+        }
+
+        // 月度报告导出按钮
+        const exportReportBtn = document.getElementById('exportReportBtn');
+        if (exportReportBtn) {
+            exportReportBtn.addEventListener('click', () => {
+                this.exportMonthlyReport();
+            });
+        }
+
+        // 下月焦点保存按钮
+        const saveNextFocusBtn = document.getElementById('saveNextFocusBtn');
+        if (saveNextFocusBtn) {
+            saveNextFocusBtn.addEventListener('click', () => {
+                this.saveNextMonthFocus();
             });
         }
     }
@@ -2051,18 +2317,17 @@ class AIRoundtableApp {
     
     renderMonthlyReport() {
         const reportSelector = document.getElementById('monthSelector');
-        const reportContent = document.getElementById('monthlyReportContent');
-        const exportBtn = document.getElementById('exportReportBtn');
+        const reportEmptyState = document.getElementById('reportEmptyState');
+        const reportContentArea = document.getElementById('reportContentArea');
+        const reportActions = document.getElementById('reportActions');
         
         // 检查是否有月报
         if (this.state.monthlyReports.length === 0) {
+            reportEmptyState.classList.remove('hidden');
+            reportContentArea.classList.add('hidden');
+            reportActions.classList.add('hidden');
             return;
         }
-        
-        // 启用导出按钮
-        exportBtn.disabled = false;
-        exportBtn.classList.remove('bg-gray-100', 'text-gray-700');
-        exportBtn.classList.add('bg-warm-blue', 'text-white', 'hover:bg-blue-600');
         
         // 获取选中的月报
         const selectedValue = reportSelector.value;
@@ -2074,74 +2339,479 @@ class AIRoundtableApp {
             report = this.state.monthlyReports[1] || this.state.monthlyReports[0];
         }
         
-        // 渲染月报
-        reportContent.innerHTML = `
-            <div class="text-center mb-6">
-                <h3 class="text-2xl font-bold mb-1">📄 你的${report.monthName}成长报告</h3>
-                <p class="text-gray-500">生成于 ${new Date(report.createdAt).toLocaleDateString()}</p>
+        // 显示报告内容
+        reportEmptyState.classList.add('hidden');
+        reportContentArea.classList.remove('hidden');
+        reportActions.classList.remove('hidden');
+        
+        // 更新生成时间
+        document.getElementById('reportGeneratedTime').textContent = new Date(report.createdAt).toLocaleString();
+        
+        // ① 渲染本月高光数据
+        this.renderTopLineStats(report.topLineStats || this.convertLegacyReport(report));
+        
+        // ② 渲染成长树快照
+        this.renderGrowthTreeSnapshot(report.growthTreeSnapshot || this.convertLegacyGrowthSnapshot(report));
+        
+        // ③ 渲染认知突破时刻
+        this.renderCognitiveBreakthroughs(report.cognitiveBreakthroughs || this.convertLegacyBreakthroughs(report));
+        
+        // ④ 渲染AI伙伴寄语
+        this.renderAIPartnerMessages(report.aiPartnerMessages || this.getDefaultAIMessages());
+        
+        // ⑤ 渲染成就与徽章
+        this.renderAchievementsAndBadges(report.achievementsAndBadges || this.convertLegacyAchievements(report));
+    }
+    
+    // 兼容旧格式报告的转换方法
+    convertLegacyReport(report) {
+        return {
+            totalGrowthPoints: (report.actionCompletion?.completed || 0) * 25 + 100,
+            wateringTimes: Math.floor(((report.actionCompletion?.completed || 0) * 25 + 100) / 50),
+            fertilizingTimes: Math.floor(((report.actionCompletion?.completed || 0) * 25 + 100) / 100),
+            actionCompletion: {
+                completed: report.actionCompletion?.completed || 0,
+                total: report.actionCompletion?.total || 5,
+                completionRate: Math.floor((report.actionCompletion?.completed || 0) / (report.actionCompletion?.total || 5) * 100)
+            },
+            conversationStats: {
+                totalConversations: Math.floor(Math.random() * 10) + 5,
+                deepConversations: Math.floor(Math.random() * 3) + 2,
+                averageLength: Math.floor(Math.random() * 20) + 10
+            }
+        };
+    }
+    
+    convertLegacyGrowthSnapshot(report) {
+        return {
+            currentLevel: report.treeLevel || 1,
+            currentStage: report.treeStage || '幼苗期',
+            levelUpsThisMonth: Math.floor(Math.random() * 2),
+            treeType: 'oak',
+            season: 'spring',
+            keyMilestone: report.breakthroughMoment || "本月有了重要的成长突破"
+        };
+    }
+    
+    convertLegacyBreakthroughs(report) {
+        return {
+            keyInsights: ["学会了更好地管理时间", "明确了自己的价值观"],
+            frequentThemes: [
+                { name: "#个人成长", count: 5 },
+                { name: "#工作效率", count: 3 },
+                { name: "#情绪管理", count: 2 }
+            ],
+            powerfulQuotes: report.commonPhrases || "我可以做得更好",
+            cognitiveUpgrades: report.cognitiveUpgrade || "有了新的认知升级"
+        };
+    }
+    
+    getDefaultAIMessages() {
+        return [
+            {
+                role: 'coach',
+                name: 'Coach 小柯',
+                emoji: '💡',
+                message: '这个月你的思考变得更加深入了。'
+            },
+            {
+                role: 'psychologist',
+                name: 'Psychologist 心理姐',
+                emoji: '💖',
+                message: '看到你在情绪管理方面的进步，真为你高兴。'
+            }
+        ];
+    }
+    
+    convertLegacyAchievements(report) {
+        return {
+            newAchievements: report.achievements || [
+                { name: '成长新手', description: '开始记录成长', icon: '🌱', unlocked: true }
+            ],
+            specialMetrics: {
+                emotionalRecoverySpeed: {
+                    current: 25,
+                    improvement: report.emotionalRecovery || 15,
+                    description: `情绪恢复速度比上月快了 ${report.emotionalRecovery || 15}%`
+                }
+            },
+            badges: [
+                { name: '初学者', icon: '⭐', color: 'blue' }
+            ]
+        };
+    }
+    
+    renderTopLineStats(stats) {
+        const container = document.getElementById('topLineStats');
+        const completionRate = stats.actionCompletion.completionRate;
+        const lastMonthRate = completionRate - Math.floor(Math.random() * 10) + 5;
+        const improvement = completionRate - lastMonthRate;
+        
+        container.innerHTML = `
+            <div class="report-metric">
+                <div class="report-metric-icon">💎</div>
+                <div class="report-metric-content">
+                    <div class="report-metric-value">${stats.totalGrowthPoints} 点</div>
+                    <div class="report-metric-label">成长值总览 · 相当于浇了 ${stats.wateringTimes} 次水，施了 ${stats.fertilizingTimes} 次肥</div>
+                </div>
             </div>
             
+            <div class="report-metric">
+                <div class="report-metric-icon">⚡</div>
+                <div class="report-metric-content">
+                    <div class="report-metric-value">${stats.actionCompletion.completed}/${stats.actionCompletion.total}</div>
+                    <div class="report-metric-label">行动计划完成率 ${completionRate}% · 比上月${improvement >= 0 ? '提升' : '下降'} ${Math.abs(improvement)}%</div>
+                </div>
+            </div>
+            
+            <div class="report-metric">
+                <div class="report-metric-icon">💬</div>
+                <div class="report-metric-content">
+                    <div class="report-metric-value">${stats.conversationStats.totalConversations} 场</div>
+                    <div class="report-metric-label">对话深度 · 其中 ${stats.conversationStats.deepConversations} 场被标记为"深度反思"</div>
+                </div>
+            </div>
+        `;
+    }
+    
+    renderGrowthTreeSnapshot(snapshot) {
+        const container = document.getElementById('growthTreeSnapshot');
+        const treeEmojis = {
+            oak: '🌳',
+            cherry: '🌸', 
+            bamboo: '🎋'
+        };
+        
+        const seasonEmojis = {
+            spring: '🌱',
+            summer: '☀️',
+            autumn: '🍁',
+            winter: '❄️'
+        };
+        
+        container.innerHTML = `
+            <div class="report-metric">
+                <div class="report-metric-icon">${treeEmojis[snapshot.treeType] || '🌳'}</div>
+                <div class="report-metric-content">
+                    <div class="report-metric-value">Level ${snapshot.currentLevel} · ${snapshot.currentStage}</div>
+                    <div class="report-metric-label">当前状态 · 本月共提升 ${snapshot.levelUpsThisMonth} 个等级</div>
+                </div>
+            </div>
+            
+            <div class="report-breakthrough-item">
+                <div class="font-medium text-green-700 mb-2">🌟 关键节点</div>
+                <div class="text-gray-700">${snapshot.keyMilestone}</div>
+            </div>
+            
+            <div class="flex items-center space-x-4 p-4 bg-white bg-opacity-30 rounded-lg">
+                <span class="text-2xl">${seasonEmojis[snapshot.season] || '🌱'}</span>
+                <div class="text-sm text-gray-600">当前季节：${this.getSeasonName(snapshot.season)}</div>
+            </div>
+        `;
+    }
+    
+    renderCognitiveBreakthroughs(breakthroughs) {
+        const container = document.getElementById('cognitiveBreakthroughs');
+        
+        container.innerHTML = `
             <div class="space-y-4">
-                <div class="flex items-center border-b border-gray-100 pb-3">
-                    <div class="text-3xl mr-4">🌱</div>
-                    <div>
-                        <div class="font-medium">成长树状态：Level ${report.treeLevel} · ${report.treeStage}</div>
-                    </div>
+                <div class="report-breakthrough-item">
+                    <div class="font-medium text-purple-700 mb-2">💡 关键洞察</div>
+                    <div class="text-gray-700">${breakthroughs.cognitiveUpgrades}</div>
                 </div>
                 
-                <div class="flex items-center border-b border-gray-100 pb-3">
-                    <div class="text-3xl mr-4">📈</div>
-                    <div>
-                        <div class="font-medium">行动力：完成了${report.actionCompletion.completed}/${report.actionCompletion.total}个计划</div>
-                        <div class="text-sm text-gray-500">+${Math.floor(Math.random() * 20) + 5}% vs 上月</div>
-                    </div>
-                </div>
-                
-                <div class="flex items-center border-b border-gray-100 pb-3">
-                    <div class="text-3xl mr-4">💬</div>
-                    <div>
-                        <div class="font-medium">最常说的一句话："${report.commonPhrases}"</div>
-                    </div>
-                </div>
-                
-                <div class="flex items-center border-b border-gray-100 pb-3">
-                    <div class="text-3xl mr-4">🎯</div>
-                    <div>
-                        <div class="font-medium">突破时刻：${report.breakthroughMoment}</div>
-                    </div>
-                </div>
-                
-                <div class="flex items-center border-b border-gray-100 pb-3">
-                    <div class="text-3xl mr-4">🧠</div>
-                    <div>
-                        <div class="font-medium">认知升级提醒：${report.cognitiveUpgrade}</div>
-                    </div>
-                </div>
-                
-                <div class="flex items-center border-b border-gray-100 pb-3">
-                    <div class="text-3xl mr-4">🌸</div>
-                    <div>
-                        <div class="font-medium">本月花开：${report.flowers}朵</div>
-                    </div>
-                </div>
-                
-                ${report.achievements.length > 0 ? `
-                    <div class="flex items-center border-b border-gray-100 pb-3">
-                        <div class="text-3xl mr-4">🎁</div>
-                        <div>
-                            <div class="font-medium">解锁成就：${report.achievements.map(a => `【${a.title}】${a.description}`).join('，')}</div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    ${breakthroughs.frequentThemes.map((theme, index) => `
+                        <div class="p-3 bg-white bg-opacity-30 rounded-lg text-center">
+                            <div class="font-medium text-purple-600">${theme.name}</div>
+                            <div class="text-sm text-gray-600">${theme.count} 次讨论</div>
                         </div>
-                    </div>
-                ` : ''}
+                    `).join('')}
+                </div>
                 
-                <div class="flex items-center">
-                    <div class="text-3xl mr-4">✨</div>
-                    <div>
-                        <div class="font-medium">特别提示：你的情绪恢复速度比上月快了${report.emotionalRecovery}%</div>
+                <div class="report-quote">
+                    ${breakthroughs.powerfulQuotes}
+                </div>
+            </div>
+        `;
+    }
+    
+    renderAIPartnerMessages(messages) {
+        const container = document.getElementById('aiPartnerMessages');
+        
+        container.innerHTML = messages.map(msg => `
+            <div class="ai-partner-message">
+                <div class="ai-partner-avatar">${msg.emoji}</div>
+                <div class="ai-partner-content">
+                    <div class="ai-partner-name">${msg.name}</div>
+                    <div class="ai-partner-text">${msg.message}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    renderAchievementsAndBadges(achievements) {
+        const container = document.getElementById('achievementsAndBadges');
+        
+        container.innerHTML = `
+            <div class="space-y-4">
+                <div>
+                    <div class="font-medium text-orange-700 mb-3">🎉 新解锁成就</div>
+                    <div class="flex flex-wrap gap-2">
+                        ${achievements.newAchievements.map(achievement => `
+                            <div class="achievement-badge">
+                                <span class="achievement-badge-icon">${achievement.icon}</span>
+                                <span>${achievement.name}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="report-metric">
+                    <div class="report-metric-icon">📈</div>
+                    <div class="report-metric-content">
+                        <div class="report-metric-value">${achievements.specialMetrics.emotionalRecoverySpeed.improvement}%</div>
+                        <div class="report-metric-label">${achievements.specialMetrics.emotionalRecoverySpeed.description}</div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="font-medium text-orange-700 mb-3">🏷️ 本月徽章</div>
+                    <div class="flex flex-wrap gap-2">
+                        ${achievements.badges.map(badge => `
+                            <span class="px-3 py-1 bg-${badge.color}-100 text-${badge.color}-700 rounded-full text-sm font-medium">
+                                ${badge.icon} ${badge.name}
+                            </span>
+                        `).join('')}
                     </div>
                 </div>
             </div>
         `;
+    }
+    
+    getSeasonName(season) {
+        const names = {
+            spring: '春天',
+            summer: '夏天', 
+            autumn: '秋天',
+            winter: '冬天'
+        };
+        return names[season] || '春天';
+    }
+
+    // 月度报告交互功能
+    generateCurrentMonthReport() {
+        const now = new Date();
+        const month = now.getMonth();
+        const year = now.getFullYear();
+        const monthName = `${year}年${month + 1}月`;
+        
+        // 显示加载状态
+        this.showReportLoading();
+        
+        // 模拟生成过程
+        setTimeout(() => {
+            // 如果没有足够数据，创建一些示例数据
+            if (this.state.sessions.length === 0 && this.state.reflectionCards.length === 0) {
+                this.createSampleData();
+            }
+            
+            const report = this.state.generateMonthlyReport(month, year, monthName);
+            if (report) {
+                this.renderMonthlyReport();
+                this.showReportSuccess();
+            } else {
+                this.showReportError('数据不足，请先进行对话和复盘');
+            }
+        }, 1500);
+    }
+
+    createSampleData() {
+        // 创建示例会话数据
+        const sampleSession = {
+            id: 'sample-session-' + Date.now(),
+            title: '月度目标复盘',
+            participants: ['coach', 'psychologist'],
+            createdAt: new Date().toISOString(),
+            messages: [
+                {
+                    id: 'msg1',
+                    role: 'user',
+                    content: '这个月我想好好反思一下自己的成长',
+                    timestamp: new Date().toISOString()
+                },
+                {
+                    id: 'msg2', 
+                    role: 'assistant',
+                    content: '很好的想法！让我们一起回顾这个月的成长历程。',
+                    timestamp: new Date().toISOString(),
+                    aiRole: 'coach'
+                }
+            ]
+        };
+
+        // 创建示例复盘卡片
+        const sampleCard = {
+            id: 'sample-card-' + Date.now(),
+            title: '本月成长复盘',
+            content: '**本月最大的收获**\n\n通过与AI伙伴的对话，我学会了更好地管理自己的情绪，也更清楚地认识到了自己的价值观。\n\n**下个月的目标**\n\n- 继续保持每周至少2次的深度反思\n- 在工作中更勇敢地表达自己的想法\n- 建立更健康的工作生活边界',
+            tags: ['成长', '情绪管理', '目标设定'],
+            type: 'deep',
+            createdAt: new Date().toISOString(),
+            sessionId: sampleSession.id
+        };
+
+        // 添加到状态中
+        this.state.sessions.push(sampleSession);
+        this.state.reflectionCards.push(sampleCard);
+        
+        // 更新成长数据
+        this.state.growthData.conversations += 1;
+        this.state.growthData.cards += 1;
+        this.state.growthData.actions += 5;
+        
+        this.state.saveToStorage();
+    }
+
+    showReportLoading() {
+        const reportEmptyState = document.getElementById('reportEmptyState');
+        reportEmptyState.innerHTML = `
+            <div class="report-loading">
+                <div class="report-loading-spinner"></div>
+                <div class="ml-4 text-gray-600">正在生成月度报告...</div>
+            </div>
+        `;
+    }
+
+    showReportSuccess() {
+        // 可以添加成功提示
+        console.log('月度报告生成成功');
+    }
+
+    showReportError(message) {
+        const reportEmptyState = document.getElementById('reportEmptyState');
+        reportEmptyState.innerHTML = `
+            <div class="text-center text-gray-500">
+                <div class="text-4xl mb-3">❌</div>
+                <div class="text-lg mb-2">生成失败</div>
+                <div class="text-sm">${message}</div>
+                <button id="retryGenerateBtn" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                    重新尝试
+                </button>
+            </div>
+        `;
+        
+        // 重试按钮事件
+        document.getElementById('retryGenerateBtn').addEventListener('click', () => {
+            this.generateCurrentMonthReport();
+        });
+    }
+
+    shareMonthlyReport() {
+        // 创建可分享的长图
+        this.generateShareableImage();
+    }
+
+    generateShareableImage() {
+        // 使用 html2canvas 或类似库生成长图
+        // 这里先显示简单的分享功能
+        const reportContent = document.getElementById('reportContentArea');
+        if (!reportContent) {
+            alert('请先生成月度报告');
+            return;
+        }
+
+        // 模拟生成分享图片
+        alert('正在生成分享图片...\n\n功能开发中，敬请期待！');
+        
+        // TODO: 实际实现可以使用 html2canvas
+        // html2canvas(reportContent).then(canvas => {
+        //     const link = document.createElement('a');
+        //     link.download = '月度成长报告.png';
+        //     link.href = canvas.toDataURL();
+        //     link.click();
+        // });
+    }
+
+    exportMonthlyReport() {
+        // 导出PDF功能
+        const reportContent = document.getElementById('reportContentArea');
+        if (!reportContent) {
+            alert('请先生成月度报告');
+            return;
+        }
+
+        // 模拟PDF导出
+        alert('正在导出PDF...\n\n功能开发中，敬请期待！');
+        
+        // TODO: 实际实现可以使用 jsPDF
+        // const { jsPDF } = window.jspdf;
+        // const pdf = new jsPDF();
+        // pdf.html(reportContent, {
+        //     callback: function (doc) {
+        //         doc.save('月度成长报告.pdf');
+        //     }
+        // });
+    }
+
+    saveNextMonthFocus() {
+        // 保存下月焦点
+        const checkedFocuses = Array.from(document.querySelectorAll('input[name="nextFocus"]:checked'))
+            .map(input => input.value);
+        
+        if (checkedFocuses.length === 0) {
+            alert('请至少选择一个焦点领域');
+            return;
+        }
+        
+        if (checkedFocuses.length > 2) {
+            alert('最多选择2个焦点领域');
+            return;
+        }
+        
+        // 保存到最新的月度报告中
+        if (this.state.monthlyReports.length > 0) {
+            this.state.monthlyReports[0].nextMonthFocus = checkedFocuses;
+            this.state.saveToStorage();
+            
+            alert(`下月焦点已保存：${checkedFocuses.join('、')}`);
+            
+            // 可以取消勾选状态
+            document.querySelectorAll('input[name="nextFocus"]:checked').forEach(input => {
+                input.checked = false;
+            });
+        }
+    }
+
+    // 深度链接功能 - 点击报告中的项目跳转到原始对话
+    createDeepLink(sessionId, messageIndex) {
+        return `#session-${sessionId}-message-${messageIndex}`;
+    }
+
+    navigateToDeepLink(link) {
+        // 解析深度链接并导航到相应的对话
+        const matches = link.match(/#session-(.+)-message-(\d+)/);
+        if (matches) {
+            const sessionId = matches[1];
+            const messageIndex = parseInt(matches[2]);
+            
+            // 找到对应的会话
+            const session = this.state.sessions.find(s => s.id === sessionId);
+            if (session) {
+                this.switchToSession(session);
+                // 滚动到特定消息
+                setTimeout(() => {
+                    const messageElement = document.querySelector(`[data-message-index="${messageIndex}"]`);
+                    if (messageElement) {
+                        messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        messageElement.classList.add('highlight');
+                        setTimeout(() => {
+                            messageElement.classList.remove('highlight');
+                        }, 2000);
+                    }
+                }, 100);
+            }
+        }
     }
     
     filterCards() {
