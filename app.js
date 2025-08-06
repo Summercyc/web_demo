@@ -2234,7 +2234,7 @@ class AIRoundtableApp {
         }
         
         // 组合提示词
-        return `${basePrompt}，${stageDesc}${specialEffect}，${seasonDesc}，高清写实风格，温暖柔和的光线，自然场景`;
+        return `${basePrompt}，${stageDesc}${specialEffect}，${seasonDesc}，3D 渲染，迪士尼动画风格，整体色调温暖明快，细节丰富，光影柔和`;
     }
     
     async generateTreeImageWithWanxiang(prompt, cacheKey) {
