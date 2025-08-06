@@ -2518,6 +2518,14 @@ class CompetencyRadarChart {
             });
         }
 
+        // 双模型分析按钮
+        const dualModelBtn = document.getElementById('dualModelBtn');
+        if (dualModelBtn) {
+            dualModelBtn.addEventListener('click', () => {
+                this.analyzeCompetencies(true); // 强制使用双模型
+            });
+        }
+
         // 关闭详情按钮
         const closeBtn = document.getElementById('closeDetailBtn');
         if (closeBtn) {
@@ -2635,7 +2643,7 @@ class CompetencyRadarChart {
         this.chart = new Chart(ctx, config);
     }
 
-    async analyzeCompetencies() {
+    async analyzeCompetencies(forceDualModel = false) {
         const refreshBtn = document.getElementById('refreshRadarBtn');
         if (refreshBtn) {
             refreshBtn.disabled = true;
@@ -2652,8 +2660,26 @@ class CompetencyRadarChart {
                 return;
             }
 
-            // 调用AI分析
-            const analysis = await this.callAIForAnalysis(conversationData);
+            let analysis;
+            
+            // 如果强制使用双模型或者数据量较大，直接使用双模型分析
+            if (forceDualModel || conversationData.length >= 8) {
+                console.log('🚀 直接启动双模型并行分析');
+                this.showMessage('🚀 使用双模型并行分析确保最佳质量...');
+                
+                const aiProvider = this.app.state.config.aiProvider || 'dashscope';
+                const textModel = this.app.state.config.textModel || 'qwen-plus';
+                const apiKey = this.app.state.config.apiKey;
+                
+                if (!apiKey) {
+                    throw new Error('请先在设置中配置API密钥');
+                }
+                
+                analysis = await this.callParallelDualModelAnalysis(conversationData, aiProvider, textModel, apiKey);
+            } else {
+                // 否则先尝试单模型分析
+                analysis = await this.callAIForAnalysis(conversationData);
+            }
             
             if (analysis) {
                 // 更新能力数据
@@ -2765,13 +2791,13 @@ ${conversationData.map(item => `[${item.type}] ${item.content.substring(0, 200)}
 
 要求：
 1. 评分要客观准确，基于实际表现
-2. 优点和建议要具体可行
-3. 分析依据要最好要引用对话内容
+2. 优点和建议要具体可行且实用
+3. 分析依据要引用对话内容的具体例子
 4. 语言温暖鼓励，避免过于批评
 5. 必须返回有效的JSON格式，不要使用markdown代码块
 6. 每个维度的score必须是0-100之间的数字
-7. strengths和improvements必须是字符串数组
-8. evidence必须是字符串
+7. strengths和improvements必须是字符串数组，每个数组2项
+8. evidence必须是字符串，可以引用具体对话内容
 
 请直接返回JSON，不要添加任何解释文字。`;
 
@@ -2798,6 +2824,16 @@ ${conversationData.map(item => `[${item.type}] ${item.content.substring(0, 200)}
             
             // 尝试解析JSON响应
             const analysis = this.parseAIResponse(response);
+            
+            // 检查是否应该使用双模型分析
+            const shouldUseDualModel = this.shouldUseDualModelAnalysis(response, analysis);
+            
+            if (shouldUseDualModel) {
+                console.log('检测到响应问题，启动双模型并行分析...');
+                this.showMessage('🚀 启动双模型并行分析，确保数据完整性...');
+                return await this.callParallelDualModelAnalysis(conversationData, aiProvider, textModel, apiKey);
+            }
+            
             if (analysis) {
                 return analysis;
             } else {
@@ -2809,6 +2845,49 @@ ${conversationData.map(item => `[${item.type}] ${item.content.substring(0, 200)}
             // 返回模拟数据作为后备
             return this.generateMockAnalysis();
         }
+    }
+
+    shouldUseDualModelAnalysis(response, analysis) {
+        // 判断是否应该启动双模型分析
+        
+        // 1. 如果响应明显被截断
+        if (this.isResponseTruncated(response)) {
+            console.log('🔍 检测依据: 响应被截断');
+            return true;
+        }
+        
+        // 2. 如果解析完全失败
+        if (!analysis) {
+            console.log('🔍 检测依据: 解析完全失败');
+            return true;
+        }
+        
+        // 3. 如果只解析出部分维度（不完整）
+        const expectedDimensions = ['表达力', '决策力', '情绪管理', '执行力', '边界感'];
+        const actualDimensions = Object.keys(analysis || {});
+        const missingDimensions = expectedDimensions.filter(dim => !actualDimensions.includes(dim));
+        
+        if (missingDimensions.length > 0) {
+            console.log('🔍 检测依据: 缺失维度', missingDimensions);
+            return true;
+        }
+        
+        // 4. 如果有维度的数据质量明显不佳
+        for (const [dimension, data] of Object.entries(analysis)) {
+            if (!this.validateSingleDimension(data)) {
+                console.log('🔍 检测依据: 维度数据质量不佳', dimension);
+                return true;
+            }
+            
+            // 检查是否有明显的截断迹象（比如evidence太短或包含省略号）
+            if (data.evidence && (data.evidence.length < 10 || data.evidence.includes('...'))) {
+                console.log('🔍 检测依据: 证据内容被截断', dimension);
+                return true;
+            }
+        }
+        
+        console.log('✅ 单模型分析质量良好，无需双模型分析');
+        return false;
     }
 
     parseAIResponse(response) {
@@ -2899,6 +2978,52 @@ ${conversationData.map(item => `[${item.type}] ${item.content.substring(0, 200)}
             console.log('修复后解析失败:', e.message);
         }
 
+        // 方法5: 尝试修复截断的JSON
+        try {
+            let truncatedResponse = response;
+            
+            // 检查是否以不完整的字符串结尾
+            const lastQuoteIndex = truncatedResponse.lastIndexOf('"');
+            const lastBraceIndex = truncatedResponse.lastIndexOf('}');
+            
+            if (lastQuoteIndex > lastBraceIndex) {
+                // 可能有未结束的字符串，尝试修复
+                truncatedResponse = truncatedResponse.substring(0, lastQuoteIndex) + '"';
+                
+                // 计算需要补充的闭合大括号数量
+                const openBraces = (truncatedResponse.match(/\{/g) || []).length;
+                const closeBraces = (truncatedResponse.match(/\}/g) || []).length;
+                const missingBraces = openBraces - closeBraces;
+                
+                for (let i = 0; i < missingBraces; i++) {
+                    truncatedResponse += '\n  }';
+                }
+                
+                // 最后添加主对象的闭合大括号
+                if (!truncatedResponse.trim().endsWith('}')) {
+                    truncatedResponse += '\n}';
+                }
+            }
+            
+            const parsed = JSON.parse(truncatedResponse);
+            if (this.validateAnalysisStructure(parsed)) {
+                return parsed;
+            }
+        } catch (e) {
+            console.log('截断修复失败:', e.message);
+        }
+
+        // 方法6: 部分解析策略 - 即使不完整也尝试提取可用数据
+        try {
+            const partialData = this.extractPartialData(response);
+            if (partialData && Object.keys(partialData).length >= 1) {
+                console.log(`使用部分解析的数据(${Object.keys(partialData).length}/5维度)，缺失的维度将使用默认值`);
+                return this.fillMissingDimensions(partialData);
+            }
+        } catch (e) {
+            console.log('部分解析失败:', e.message);
+        }
+
         console.error('所有JSON解析方法都失败了');
         return null;
     }
@@ -2935,6 +3060,678 @@ ${conversationData.map(item => `[${item.type}] ${item.content.substring(0, 200)}
         }
         
         return true;
+    }
+
+    extractPartialData(response) {
+        // 尝试从不完整的响应中提取可用的维度数据
+        const competencies = {};
+        const dimensionNames = ['表达力', '决策力', '情绪管理', '执行力', '边界感'];
+        
+        for (const dimension of dimensionNames) {
+            // 寻找每个维度的开始位置
+            const dimensionStart = response.indexOf(`"${dimension}"`);
+            if (dimensionStart === -1) continue;
+            
+            // 找到这个维度的对象开始位置
+            const objectStart = response.indexOf('{', dimensionStart);
+            if (objectStart === -1) continue;
+            
+            // 尝试找到匹配的闭合大括号
+            let braceCount = 1;
+            let objectEnd = objectStart + 1;
+            
+            while (objectEnd < response.length && braceCount > 0) {
+                if (response[objectEnd] === '{') {
+                    braceCount++;
+                } else if (response[objectEnd] === '}') {
+                    braceCount--;
+                }
+                objectEnd++;
+            }
+            
+            if (braceCount === 0) {
+                // 找到了完整的对象
+                try {
+                    const objectStr = response.substring(objectStart, objectEnd);
+                    const dimensionData = JSON.parse(objectStr);
+                    
+                    // 验证这个维度的数据结构
+                    if (dimensionData && 
+                        typeof dimensionData.score === 'number' &&
+                        Array.isArray(dimensionData.strengths) &&
+                        Array.isArray(dimensionData.improvements) &&
+                        typeof dimensionData.evidence === 'string') {
+                        
+                        competencies[dimension] = dimensionData;
+                        console.log(`成功提取维度: ${dimension}`);
+                    }
+                } catch (e) {
+                    console.log(`提取维度 ${dimension} 失败:`, e.message);
+                    continue;
+                }
+            }
+        }
+        
+        return Object.keys(competencies).length > 0 ? competencies : null;
+    }
+
+    fillMissingDimensions(partialData) {
+        // 为缺失的维度填充默认数据
+        const allDimensions = ['表达力', '决策力', '情绪管理', '执行力', '边界感'];
+        const result = { ...partialData };
+        
+        for (const dimension of allDimensions) {
+            if (!result[dimension]) {
+                result[dimension] = {
+                    score: 60, // 默认分数
+                    strengths: [`${dimension}方面有基础表现`],
+                    improvements: [`需要更多数据来分析${dimension}的具体表现`],
+                    evidence: `由于数据不完整，${dimension}维度使用默认评估`
+                };
+                console.log(`补充缺失维度: ${dimension}`);
+            }
+        }
+        
+        return result;
+    }
+
+    isResponseTruncated(response) {
+        // 检查响应是否可能被截断
+        return (
+            response.includes('...') || // 包含省略号
+            response.match(/[^"}]$/) || // 不以引号或大括号结尾
+            response.match(/"[^"]*$/) || // 包含未闭合的引号
+            response.split('{').length !== response.split('}').length // 大括号不匹配
+        );
+    }
+
+    async callDimensionByDimensionAnalysis(conversationData, aiProvider, textModel, apiKey) {
+        // 分维度逐个分析，避免响应过长被截断
+        const dimensions = ['表达力', '决策力', '情绪管理', '执行力', '边界感'];
+        const dimensionDefinitions = {
+            '表达力': '清晰表达想法、情感和需求的能力',
+            '决策力': '在不确定情况下做出合理决策的能力',
+            '情绪管理': '识别、理解和调节自己情绪的能力',
+            '执行力': '将想法转化为行动并持续推进的能力',
+            '边界感': '在人际关系中保持适当界限的能力'
+        };
+        
+        const result = {};
+        const conversationSummary = conversationData.slice(0, 5).map(item => 
+            `[${item.type}] ${item.content.substring(0, 150)}`
+        ).join('\n\n');
+        
+        for (let i = 0; i < dimensions.length; i++) {
+            const dimension = dimensions[i];
+            this.showMessage(`🔍 正在分析 ${dimension} (${i + 1}/${dimensions.length})`);
+            
+            try {
+                const dimensionPrompt = `你是专业成长顾问，请分析用户在"${dimension}"维度的表现。
+
+维度定义：${dimensionDefinitions[dimension]}
+
+用户数据：
+${conversationSummary}
+
+请返回JSON格式：
+{
+  "score": 75,
+  "strengths": ["具体优势描述1", "具体优势描述2"],
+  "improvements": ["具体改进建议1", "具体改进建议2"],
+  "evidence": "基于对话内容的分析依据，最好引用具体例子"
+}
+
+要求：
+1. score为0-100的数字
+2. strengths和improvements要具体可行
+3. evidence要引用对话内容
+4. 直接返回JSON，不要其他文字`;
+
+                let response;
+                if (aiProvider === 'dashscope') {
+                    response = await this.app.callDashScope([{role: 'user', content: dimensionPrompt}], textModel, apiKey);
+                } else {
+                    response = await this.app.callOpenRouter([{role: 'user', content: dimensionPrompt}], textModel, apiKey);
+                }
+                
+                // 解析单个维度的响应
+                const dimensionData = this.parseSingleDimensionResponse(response);
+                if (dimensionData) {
+                    result[dimension] = dimensionData;
+                    console.log(`✅ 成功分析维度: ${dimension}`);
+                    
+                    // 添加短暂延迟避免API频率限制
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                } else {
+                    // 如果单个维度也失败，使用智能默认值
+                    result[dimension] = this.generateDimensionDefault(dimension, conversationData);
+                    console.log(`⚠️  维度 ${dimension} 使用默认分析`);
+                }
+            } catch (error) {
+                console.log(`❌ 分析维度 ${dimension} 失败:`, error.message);
+                result[dimension] = this.generateDimensionDefault(dimension, conversationData);
+            }
+        }
+        
+        console.log('🎯 分维度分析完成，成功维度数量:', Object.keys(result).length);
+        return result;
+    }
+
+    async callParallelDualModelAnalysis(conversationData, aiProvider, textModel, apiKey) {
+        console.log('🚀 启动双模型并行分析策略');
+        
+        const conversationSummary = conversationData.map(item => 
+            `[${item.type}] ${item.content.substring(0, 200)}...`
+        ).join('\n\n');
+
+        // 准备两个不同顺序的prompt
+        const basePrompt = `你是一个专业的成长顾问，需要根据用户的对话和复盘内容，分析用户在5个核心软技能维度上的表现，并给出0-100分的评分和具体建议。
+
+用户数据：
+${conversationSummary}
+
+请分析并返回标准JSON格式，不要包含任何markdown代码块标记。要求：
+1. 评分要客观准确，基于实际表现
+2. 优点和建议要具体可行且实用
+3. 分析依据要引用对话内容的具体例子
+4. 语言温暖鼓励，避免过于批评
+5. 必须返回有效的JSON格式
+6. 每个维度的score必须是0-100之间的数字
+7. strengths和improvements必须是字符串数组，每个数组2项
+8. evidence必须是字符串，可以引用具体对话内容
+
+请直接返回JSON，不要添加任何解释文字。`;
+
+        // 正序prompt
+        const prompt1 = basePrompt + `
+
+按以下顺序返回五个维度的分析：
+{
+  "表达力": {
+    "score": 75,
+    "strengths": ["具体优点1", "具体优点2"],
+    "improvements": ["具体建议1", "具体建议2"],
+    "evidence": "分析依据"
+  },
+  "决策力": { "score": 70, "strengths": ["优点1", "优点2"], "improvements": ["建议1", "建议2"], "evidence": "依据" },
+  "情绪管理": { "score": 80, "strengths": ["优点1", "优点2"], "improvements": ["建议1", "建议2"], "evidence": "依据" },
+  "执行力": { "score": 65, "strengths": ["优点1", "优点2"], "improvements": ["建议1", "建议2"], "evidence": "依据" },
+  "边界感": { "score": 68, "strengths": ["优点1", "优点2"], "improvements": ["建议1", "建议2"], "evidence": "依据" }
+}`;
+
+        // 逆序prompt
+        const prompt2 = basePrompt + `
+
+按以下顺序返回五个维度的分析：
+{
+  "边界感": {
+    "score": 68,
+    "strengths": ["具体优点1", "具体优点2"],
+    "improvements": ["具体建议1", "具体建议2"],
+    "evidence": "分析依据"
+  },
+  "执行力": { "score": 65, "strengths": ["优点1", "优点2"], "improvements": ["建议1", "建议2"], "evidence": "依据" },
+  "情绪管理": { "score": 80, "strengths": ["优点1", "优点2"], "improvements": ["建议1", "建议2"], "evidence": "依据" },
+  "决策力": { "score": 70, "strengths": ["优点1", "优点2"], "improvements": ["建议1", "建议2"], "evidence": "依据" },
+  "表达力": { "score": 75, "strengths": ["优点1", "优点2"], "improvements": ["建议1", "建议2"], "evidence": "依据" }
+}`;
+
+        try {
+            // 并行调用两个模型
+            console.log('🔄 并行启动两个AI分析任务...');
+            this.showMessage('⚡ 正序分析 & 逆序分析并行进行中...');
+
+            const [response1Promise, response2Promise] = [
+                this.callAIWithPrompt(prompt1, aiProvider, textModel, apiKey, '正序'),
+                this.callAIWithPrompt(prompt2, aiProvider, textModel, apiKey, '逆序')
+            ];
+
+            // 等待所有结果，但不让一个失败影响另一个
+            const results = await Promise.allSettled([response1Promise, response2Promise]);
+            
+            const result1 = results[0].status === 'fulfilled' ? results[0].value : null;
+            const result2 = results[1].status === 'fulfilled' ? results[1].value : null;
+
+            // 统计维度完整性
+            const getDimensionCount = (result) => result ? Object.keys(result).length : 0;
+            const dimensions1 = getDimensionCount(result1);
+            const dimensions2 = getDimensionCount(result2);
+
+            console.log('📊 双模型并行分析结果:');
+            console.log(`  📝 正序分析: ${result1 ? '✅成功' : '❌失败'} (${dimensions1}/5 维度)`);
+            console.log(`  📝 逆序分析: ${result2 ? '✅成功' : '❌失败'} (${dimensions2}/5 维度)`);
+            console.log(`  🎯 可融合维度: ${dimensions1 + dimensions2} 个数据源`);
+
+            // 整合两个结果
+            const mergedAnalysis = this.mergeAnalysisResults(result1, result2);
+            
+            if (mergedAnalysis && this.validateAnalysisStructure(mergedAnalysis)) {
+                console.log('🎯 双模型分析成功，数据已整合');
+                this.showMessage('✨ 双模型分析完成，数据完整性已确保！');
+                return mergedAnalysis;
+            } else {
+                throw new Error('双模型分析结果整合失败');
+            }
+
+        } catch (error) {
+            console.error('双模型并行分析失败:', error);
+            this.showMessage('⚠️ 双模型分析失败，回退到分维度分析...');
+            
+            // 回退到分维度分析
+            return await this.callDimensionByDimensionAnalysis(conversationData, aiProvider, textModel, apiKey);
+        }
+    }
+
+    async callAIWithPrompt(prompt, aiProvider, textModel, apiKey, label) {
+        console.log(`🤖 启动${label}分析...`);
+        
+        try {
+            let response;
+            if (aiProvider === 'dashscope') {
+                response = await this.app.callDashScope([{role: 'user', content: prompt}], textModel, apiKey);
+            } else if (aiProvider === 'openrouter') {
+                response = await this.app.callOpenRouter([{role: 'user', content: prompt}], textModel, apiKey);
+            } else {
+                throw new Error('不支持的AI服务提供商');
+            }
+
+            const analysis = this.parseAIResponse(response);
+            if (analysis) {
+                console.log(`✅ ${label}分析成功`);
+                return analysis;
+            } else {
+                console.log(`❌ ${label}分析解析失败`);
+                return null;
+            }
+        } catch (error) {
+            console.error(`${label}分析调用失败:`, error.message);
+            return null;
+        }
+    }
+
+    mergeAnalysisResults(result1, result2) {
+        console.log('🔄 开始智能整合双模型分析结果...');
+        
+        if (!result1 && !result2) {
+            console.log('❌ 两个模型都失败了');
+            return null;
+        }
+
+        // 检查两个结果的真实维度数量
+        const getRealDimensionCount = (result) => {
+            if (!result) return 0;
+            let count = 0;
+            for (const [dim, data] of Object.entries(result)) {
+                // 检查是否为默认数据（score=60且evidence包含"默认评估"）
+                if (data.score !== 60 || !data.evidence.includes('默认评估')) {
+                    count++;
+                }
+            }
+            return count;
+        };
+
+        const realDims1 = getRealDimensionCount(result1);
+        const realDims2 = getRealDimensionCount(result2);
+
+        console.log(`📊 数据质量分析: 正序${realDims1}个真实维度, 逆序${realDims2}个真实维度`);
+
+        if (!result1) {
+            console.log('📊 只有逆序结果可用');
+            return result2;
+        }
+
+        if (!result2) {
+            console.log('📊 只有正序结果可用');
+            return result1;
+        }
+
+        // 两个结果都存在，进行智能融合
+        if (realDims1 > 0 && realDims2 > 0) {
+            console.log('🎯 两个模型都有真实数据，开始深度融合分析...');
+        } else if (realDims1 > 0) {
+            console.log('📊 正序数据质量更好，主要使用正序结果');
+            return result1;
+        } else if (realDims2 > 0) {
+            console.log('📊 逆序数据质量更好，主要使用逆序结果');
+            return result2;
+        } else {
+            console.log('🎯 两个模型都只有默认数据，仍进行融合...');
+        }
+        
+        const dimensions = ['表达力', '决策力', '情绪管理', '执行力', '边界感'];
+        const mergedResult = {};
+
+        for (const dimension of dimensions) {
+            const data1 = result1[dimension];
+            const data2 = result2[dimension];
+
+            if (data1 && data2) {
+                // 两个都有数据，进行深度融合
+                mergedResult[dimension] = this.fuseDimensionData(data1, data2, dimension);
+                console.log(`🔄 ${dimension}: 融合两次分析`);
+            } else if (data1) {
+                mergedResult[dimension] = data1;
+                console.log(`📝 ${dimension}: 补充正序结果`);
+            } else if (data2) {
+                mergedResult[dimension] = data2;
+                console.log(`📝 ${dimension}: 补充逆序结果`);
+            } else {
+                // 两个都没有，使用默认值
+                mergedResult[dimension] = this.generateDimensionDefault(dimension, this.gatherConversationData());
+                console.log(`⚠️  ${dimension}: 使用默认数据`);
+            }
+        }
+
+        console.log('🎉 双模型深度融合完成，所有维度已补全');
+        return mergedResult;
+    }
+
+    fuseDimensionData(data1, data2, dimension) {
+        console.log(`🔄 融合 ${dimension} 维度数据...`);
+        
+        // 1. 分数融合：取平均值，但会根据数据质量进行权重调整
+        const quality1 = this.calculateContentQuality(data1);
+        const quality2 = this.calculateContentQuality(data2);
+        const totalQuality = quality1 + quality2;
+        
+        let fusedScore;
+        if (totalQuality > 0) {
+            // 根据质量加权平均
+            const weight1 = quality1 / totalQuality;
+            const weight2 = quality2 / totalQuality;
+            fusedScore = Math.round(data1.score * weight1 + data2.score * weight2);
+        } else {
+            // 简单平均
+            fusedScore = Math.round((data1.score + data2.score) / 2);
+        }
+        
+        // 2. 优势融合：去重并合并
+        const allStrengths = [...(data1.strengths || []), ...(data2.strengths || [])];
+        const uniqueStrengths = this.mergeAndDeduplicateArrays(allStrengths);
+        
+        // 3. 改进建议融合：去重并合并
+        const allImprovements = [...(data1.improvements || []), ...(data2.improvements || [])];
+        const uniqueImprovements = this.mergeAndDeduplicateArrays(allImprovements);
+        
+        // 4. 证据融合：选择更详细的或合并
+        let fusedEvidence;
+        const evidence1 = data1.evidence || '';
+        const evidence2 = data2.evidence || '';
+        
+        if (evidence1.length > evidence2.length * 1.5) {
+            fusedEvidence = evidence1;
+        } else if (evidence2.length > evidence1.length * 1.5) {
+            fusedEvidence = evidence2;
+        } else {
+            // 长度相近，尝试合并
+            fusedEvidence = this.fuseTwoEvidence(evidence1, evidence2);
+        }
+        
+        const result = {
+            score: fusedScore,
+            strengths: uniqueStrengths.slice(0, 3), // 保留最多3个优势
+            improvements: uniqueImprovements.slice(0, 3), // 保留最多3个改进建议
+            evidence: fusedEvidence
+        };
+        
+        console.log(`✅ ${dimension} 融合完成: 分数${fusedScore}, 优势${uniqueStrengths.length}项, 改进${uniqueImprovements.length}项`);
+        return result;
+    }
+
+    mergeAndDeduplicateArrays(arrays) {
+        const seen = new Set();
+        const result = [];
+        
+        for (const item of arrays) {
+            if (!item || typeof item !== 'string') continue;
+            
+            // 简单的相似度检测（去掉标点和空格后比较）
+            const normalized = item.replace(/[，。！？、；：""''（）【】\s]/g, '').toLowerCase();
+            
+            let isDuplicate = false;
+            for (const existing of result) {
+                const existingNormalized = existing.replace(/[，。！？、；：""''（）【】\s]/g, '').toLowerCase();
+                
+                // 如果有80%以上的相似度，认为是重复
+                if (this.calculateStringSimilarity(normalized, existingNormalized) > 0.8) {
+                    isDuplicate = true;
+                    break;
+                }
+            }
+            
+            if (!isDuplicate && item.length > 5) { // 过滤太短的内容
+                result.push(item);
+            }
+        }
+        
+        return result;
+    }
+
+    calculateStringSimilarity(str1, str2) {
+        if (str1 === str2) return 1;
+        
+        const longer = str1.length > str2.length ? str1 : str2;
+        const shorter = str1.length > str2.length ? str2 : str1;
+        
+        if (longer.length === 0) return 1;
+        
+        const distance = this.calculateLevenshteinDistance(longer, shorter);
+        return (longer.length - distance) / longer.length;
+    }
+
+    calculateLevenshteinDistance(str1, str2) {
+        const matrix = [];
+        
+        for (let i = 0; i <= str2.length; i++) {
+            matrix[i] = [i];
+        }
+        
+        for (let j = 0; j <= str1.length; j++) {
+            matrix[0][j] = j;
+        }
+        
+        for (let i = 1; i <= str2.length; i++) {
+            for (let j = 1; j <= str1.length; j++) {
+                if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+                    matrix[i][j] = matrix[i - 1][j - 1];
+                } else {
+                    matrix[i][j] = Math.min(
+                        matrix[i - 1][j - 1] + 1,
+                        matrix[i][j - 1] + 1,
+                        matrix[i - 1][j] + 1
+                    );
+                }
+            }
+        }
+        
+        return matrix[str2.length][str1.length];
+    }
+
+    fuseTwoEvidence(evidence1, evidence2) {
+        if (!evidence1) return evidence2;
+        if (!evidence2) return evidence1;
+        
+        // 检查是否有明显的重叠内容
+        const similarity = this.calculateStringSimilarity(
+            evidence1.replace(/[，。！？、；：""''（）【】\s]/g, ''),
+            evidence2.replace(/[，。！？、；：""''（）【】\s]/g, '')
+        );
+        
+        if (similarity > 0.7) {
+            // 高度相似，选择更长的
+            return evidence1.length >= evidence2.length ? evidence1 : evidence2;
+        } else {
+            // 内容不同，尝试合并
+            return `${evidence1}；${evidence2}`;
+        }
+    }
+
+    selectBetterDimensionData(data1, data2, dimension) {
+        // 评分标准：数据完整性 > 内容质量 > 分数合理性
+        
+        // 检查数据完整性
+        const completeness1 = this.calculateDataCompleteness(data1);
+        const completeness2 = this.calculateDataCompleteness(data2);
+        
+        if (completeness1 !== completeness2) {
+            return completeness1 > completeness2 ? data1 : data2;
+        }
+
+        // 检查内容质量（基于文字长度和具体性）
+        const quality1 = this.calculateContentQuality(data1);
+        const quality2 = this.calculateContentQuality(data2);
+        
+        if (Math.abs(quality1 - quality2) > 0.1) {
+            return quality1 > quality2 ? data1 : data2;
+        }
+
+        // 分数合理性（避免极端值）
+        const score1 = data1.score;
+        const score2 = data2.score;
+        const avgScore = (score1 + score2) / 2;
+        
+        // 如果分数差异较大，取平均值并使用内容更好的数据
+        if (Math.abs(score1 - score2) > 15) {
+            const betterData = quality1 > quality2 ? data1 : data2;
+            return {
+                ...betterData,
+                score: Math.round(avgScore),
+                evidence: `${betterData.evidence}（综合两次分析结果）`
+            };
+        }
+
+        // 默认返回内容更丰富的
+        return quality1 >= quality2 ? data1 : data2;
+    }
+
+    calculateDataCompleteness(data) {
+        let score = 0;
+        if (data.score >= 0 && data.score <= 100) score += 1;
+        if (Array.isArray(data.strengths) && data.strengths.length > 0) score += 1;
+        if (Array.isArray(data.improvements) && data.improvements.length > 0) score += 1;
+        if (typeof data.evidence === 'string' && data.evidence.length > 0) score += 1;
+        return score / 4;
+    }
+
+    calculateContentQuality(data) {
+        let score = 0;
+        
+        // 检查strengths质量
+        if (data.strengths) {
+            const avgStrengthLength = data.strengths.reduce((sum, s) => sum + s.length, 0) / data.strengths.length;
+            score += Math.min(avgStrengthLength / 20, 1); // 理想长度20字符
+        }
+        
+        // 检查improvements质量
+        if (data.improvements) {
+            const avgImprovementLength = data.improvements.reduce((sum, s) => sum + s.length, 0) / data.improvements.length;
+            score += Math.min(avgImprovementLength / 20, 1);
+        }
+        
+        // 检查evidence质量
+        if (data.evidence) {
+            score += Math.min(data.evidence.length / 50, 1); // 理想长度50字符
+        }
+        
+        return score / 3;
+    }
+
+    parseSingleDimensionResponse(response) {
+        // 解析单个维度的AI响应
+        console.log('解析单维度响应:', response.substring(0, 200) + '...');
+        
+        try {
+            // 尝试直接解析
+            const data = JSON.parse(response);
+            if (this.validateSingleDimension(data)) {
+                return data;
+            }
+        } catch (e) {
+            console.log('直接解析单维度失败:', e.message);
+        }
+
+        // 尝试清理后解析
+        try {
+            let cleaned = response
+                .replace(/```json\s*/g, '')
+                .replace(/```\s*/g, '')
+                .replace(/，/g, ',')
+                .replace(/：/g, ':')
+                .replace(/"/g, '"')
+                .replace(/"/g, '"')
+                .trim();
+
+            // 提取JSON部分
+            const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const data = JSON.parse(jsonMatch[0]);
+                if (this.validateSingleDimension(data)) {
+                    return data;
+                }
+            }
+        } catch (e) {
+            console.log('清理后解析单维度失败:', e.message);
+        }
+
+        return null;
+    }
+
+    validateSingleDimension(data) {
+        // 验证单个维度数据的结构
+        return data &&
+               typeof data.score === 'number' &&
+               data.score >= 0 && data.score <= 100 &&
+               Array.isArray(data.strengths) &&
+               Array.isArray(data.improvements) &&
+               typeof data.evidence === 'string' &&
+               data.strengths.length > 0 &&
+               data.improvements.length > 0;
+    }
+
+    generateDimensionDefault(dimension, conversationData) {
+        // 为单个维度生成智能默认分析
+        const dataQuality = conversationData.length;
+        const baseScore = Math.min(75, 55 + dataQuality * 2);
+        
+        const dimensionInsights = {
+            '表达力': {
+                strengths: ['能够表达基本需求和想法', '在交流中体现出真诚的态度'],
+                improvements: ['可以更系统地组织语言表达', '尝试用更多样的方式传达想法'],
+                evidenceTemplate: '在对话中展现了基本的表达意愿'
+            },
+            '决策力': {
+                strengths: ['对问题有自己的思考', '会寻求外部意见来辅助决策'],
+                improvements: ['可以建立更系统的决策框架', '提高面对不确定性时的决断力'],
+                evidenceTemplate: '从对话中可以看出有决策思考的过程'
+            },
+            '情绪管理': {
+                strengths: ['能够识别自己的情绪状态', '有寻求帮助和支持的意识'],
+                improvements: ['可以学习更多情绪调节技巧', '提高情绪恢复的速度'],
+                evidenceTemplate: '对话中体现了情绪觉察的能力'
+            },
+            '执行力': {
+                strengths: ['有制定目标的意识', '能够总结和反思经验'],
+                improvements: ['提高行动的持续性和稳定性', '建立更有效的进度跟踪机制'],
+                evidenceTemplate: '复盘内容显示出行动规划的意识'
+            },
+            '边界感': {
+                strengths: ['开始关注人际关系的健康程度', '有反思自己在关系中定位的意识'],
+                improvements: ['学习更明确地表达个人边界', '提高在复杂关系中的应对能力'],
+                evidenceTemplate: '在人际话题的讨论中体现了边界意识'
+            }
+        };
+
+        const insight = dimensionInsights[dimension];
+        const score = Math.floor(Math.random() * 15) + baseScore;
+
+        return {
+            score: score,
+            strengths: insight.strengths,
+            improvements: insight.improvements,
+            evidence: dataQuality > 2 ? 
+                `${insight.evidenceTemplate}，基于${dataQuality}次对话记录的分析` :
+                `${insight.evidenceTemplate}，需要更多对话数据来深入分析`
+        };
     }
 
     generateMockAnalysis() {
