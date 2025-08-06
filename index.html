@@ -7,6 +7,10 @@
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <!-- 使用本地Tailwind CSS文件，如果加载失败则回退到CDN -->
     <link rel="stylesheet" href="tailwind.min.css" onerror="this.onerror=null;this.href='https://cdn.tailwindcss.com';">
+    
+    <!-- 分享和导出功能所需的外部库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
     <script>
         // 安全配置 Tailwind CSS
         function configureTailwind() {
