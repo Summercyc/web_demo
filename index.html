@@ -8,9 +8,8 @@
     <!-- 使用本地Tailwind CSS文件，如果加载失败则回退到CDN -->
     <link rel="stylesheet" href="tailwind.min.css" onerror="this.onerror=null;this.href='https://cdn.tailwindcss.com';">
     
-    <!-- 分享和导出功能所需的外部库 -->
+    <!-- 分享长图功能所需的外部库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
     <script>
         // 安全配置 Tailwind CSS
         function configureTailwind() {
@@ -658,14 +657,10 @@
                 <!-- 报告操作区 -->
                 <div id="reportActions" class="mt-6 flex justify-between items-center hidden">
                     <div class="flex space-x-3">
-                        <button id="shareReportBtn" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center text-sm">
+                        <button id="shareReportBtn" class="px-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg hover:from-green-600 hover:to-blue-600 flex items-center text-sm font-medium shadow-lg transform hover:scale-105 transition-all duration-200">
                             <span class="mr-2">📤</span>
-                            分享长图
+                            生成分享长图
                         </button>
-                        <button id="exportReportBtn" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center text-sm">
-                            <span class="mr-2">📄</span>
-                            导出PDF
-                    </button>
                     </div>
                     <div class="text-xs text-gray-500">
                         报告生成于 <span id="reportGeneratedTime"></span>

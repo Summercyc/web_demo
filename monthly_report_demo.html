@@ -8,9 +8,8 @@
     <link rel="stylesheet" href="tailwind.min.css" onerror="this.onerror=null;this.href='https://cdn.tailwindcss.com';">
     <link rel="stylesheet" href="style.css">
     
-    <!-- 分享和导出功能所需的外部库 -->
+    <!-- 分享长图功能所需的外部库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
     <style>
         .demo-container {
             max-width: 1200px;
@@ -171,11 +170,11 @@
                 </div>
                 
                 <div class="feature-card">
-                    <div class="text-3xl mb-3">📄</div>
-                    <h3 class="text-lg font-semibold mb-2">导出存档</h3>
-                    <p class="text-gray-600 text-sm mb-4">支持导出为PDF，方便长期保存</p>
-                    <button class="w-full py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
-                        模拟导出
+                    <div class="text-3xl mb-3">📤</div>
+                    <h3 class="text-lg font-semibold mb-2">分享长图</h3>
+                    <p class="text-gray-600 text-sm mb-4">生成精美分享长图，支持高清下载和社交分享</p>
+                    <button class="w-full py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
+                        生成分享图
                     </button>
                 </div>
                 
@@ -328,12 +327,9 @@
 
                 <!-- 操作按钮 -->
                 <div class="text-center mt-8">
-                    <div class="inline-flex space-x-4">
-                        <button class="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
-                            📤 分享长图
-                        </button>
-                        <button class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
-                            📄 导出PDF
+                    <div class="inline-flex justify-center">
+                        <button class="px-8 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg hover:from-green-600 hover:to-blue-600 transition-all transform hover:scale-105 shadow-lg">
+                            📤 生成分享长图
                         </button>
                     </div>
                 </div>

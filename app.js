@@ -1956,13 +1956,7 @@ class AIRoundtableApp {
             });
         }
 
-        // 月度报告导出按钮
-        const exportReportBtn = document.getElementById('exportReportBtn');
-        if (exportReportBtn) {
-            exportReportBtn.addEventListener('click', () => {
-                this.exportMonthlyReport();
-            });
-        }
+        // PDF导出功能已移除
 
         // 下月焦点保存按钮
         const saveNextFocusBtn = document.getElementById('saveNextFocusBtn');
@@ -3448,30 +3442,45 @@ class AIRoundtableApp {
             // 创建专门用于分享的版本
             const shareableContent = this.createShareableVersion();
             
+            if (!shareableContent) {
+                throw new Error('无法创建分享内容');
+            }
+            
+            // 等待一下确保DOM更新完成
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
             // 生成图片
             const canvas = await html2canvas(shareableContent, {
-                allowTaint: false,
-                useCORS: true,
+                allowTaint: true,
+                useCORS: false,
                 scale: 2, // 高清图片
-                backgroundColor: '#ffffff',
+                backgroundColor: '#667eea',
                 width: 800,
                 height: null, // 自动高度
                 scrollX: 0,
                 scrollY: 0,
+                logging: false, // 禁用日志
+                imageTimeout: 0,
+                removeContainer: false,
+                foreignObjectRendering: false,
                 ignoreElements: (element) => {
                     // 忽略某些不需要的元素
-                    return element.classList.contains('no-share');
+                    return element.classList.contains('no-share') || 
+                           element.tagName === 'SCRIPT' ||
+                           element.tagName === 'STYLE';
                 }
             });
             
             // 下载图片
             const link = document.createElement('a');
             link.download = `AI圆桌成长报告_${new Date().getFullYear()}年${new Date().getMonth() + 1}月.png`;
-            link.href = canvas.toDataURL('image/png');
+            link.href = canvas.toDataURL('image/png', 1.0);
             link.click();
             
             // 清理临时元素
-            document.body.removeChild(shareableContent);
+            if (document.body.contains(shareableContent)) {
+                document.body.removeChild(shareableContent);
+            }
             
             this.hideShareLoading();
             this.showShareSuccess();
@@ -3479,7 +3488,7 @@ class AIRoundtableApp {
         } catch (error) {
             console.error('生成分享图片失败:', error);
             this.hideShareLoading();
-            alert('生成分享图片失败，请重试');
+            alert(`生成分享图片失败: ${error.message}\n\n请重试或检查浏览器控制台了解详细错误信息`);
         }
     }
 
@@ -3622,232 +3631,9 @@ class AIRoundtableApp {
         }, 3000);
     }
 
-    async exportMonthlyReport() {
-        // 检查jsPDF是否可用
-        if (typeof window.jspdf === 'undefined') {
-            alert('PDF导出功能正在加载中，请稍后重试...');
-            return;
-        }
-
-        const reportContent = document.getElementById('reportContentArea');
-        if (!reportContent) {
-            alert('请先生成月度报告');
-            return;
-        }
-
-        try {
-            // 显示加载提示
-            this.showPDFLoading();
-
-            // 创建专门用于PDF的版本
-            const pdfContent = this.createPDFVersion();
-            
-            // 使用jsPDF生成PDF
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4'
-            });
-
-            // 添加PDF标题
-            pdf.setFontSize(20);
-            pdf.text('AI圆桌成长报告', 105, 20, { align: 'center' });
-            
-            pdf.setFontSize(12);
-            pdf.text(`${new Date().getFullYear()}年${new Date().getMonth() + 1}月`, 105, 30, { align: 'center' });
-
-            // 将HTML内容转换为PDF
-            await pdf.html(pdfContent, {
-                callback: (doc) => {
-                    // 清理临时元素
-                    document.body.removeChild(pdfContent);
-                    
-                    // 保存PDF文件
-                    doc.save(`AI圆桌成长报告_${new Date().getFullYear()}年${new Date().getMonth() + 1}月.pdf`);
-                    
-                    this.hidePDFLoading();
-                    this.showPDFSuccess();
-                },
-                x: 10,
-                y: 40,
-                width: 190, // PDF页面宽度
-                windowWidth: 800, // 渲染宽度
-                margin: [10, 10, 10, 10],
-                autoPaging: 'text',
-                html2canvas: {
-                    allowTaint: true,
-                    dpi: 300,
-                    letterRendering: true,
-                    useCORS: false,
-                    scale: 2
-                }
-            });
-
-        } catch (error) {
-            console.error('导出PDF失败:', error);
-            this.hidePDFLoading();
-            
-            // 尝试使用备用方法
-            this.exportPDFAsImage();
-        }
-    }
-
-    async exportPDFAsImage() {
-        // 备用方法：生成图片后转换为PDF
-        try {
-            if (typeof html2canvas === 'undefined') {
-                alert('PDF导出功能暂时不可用，请稍后重试');
-                return;
-            }
-
-            const reportContent = document.getElementById('reportContentArea');
-            const canvas = await html2canvas(reportContent, {
-                scale: 2,
-                useCORS: true,
-                allowTaint: false
-            });
-
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const imgData = canvas.toDataURL('image/png');
-            
-            const imgWidth = 190;
-            const pageHeight = 297;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            let heightLeft = imgHeight;
-
-            let position = 10;
-
-            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
-
-            while (heightLeft >= 0) {
-                position = heightLeft - imgHeight + 10;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-            }
-
-            pdf.save(`AI圆桌成长报告_${new Date().getFullYear()}年${new Date().getMonth() + 1}月.pdf`);
-            
-            this.hidePDFLoading();
-            this.showPDFSuccess();
-
-        } catch (error) {
-            console.error('备用PDF导出也失败:', error);
-            this.hidePDFLoading();
-            alert('PDF导出失败，请重试');
-        }
-    }
-
-    createPDFVersion() {
-        // 创建专门用于PDF的版本
-        const reportContent = document.getElementById('reportContentArea');
-        if (!reportContent) return null;
-        
-        // 克隆报告内容
-        const pdfContent = reportContent.cloneNode(true);
-        pdfContent.id = 'pdfReport';
-        
-        // 设置PDF版本的样式
-        pdfContent.style.cssText = `
-            position: fixed;
-            top: -9999px;
-            left: -9999px;
-            width: 800px;
-            max-width: 800px;
-            background: white;
-            padding: 20px;
-            font-family: "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            color: #333;
-            line-height: 1.6;
-        `;
-        
-        // 为PDF优化样式
-        this.stylizeForPDF(pdfContent);
-        
-        // 添加到DOM中（临时）
-        document.body.appendChild(pdfContent);
-        
-        return pdfContent;
-    }
-
-    stylizeForPDF(container) {
-        // 为PDF版本设置特殊样式
-        const sections = container.querySelectorAll('.macaron-card');
-        sections.forEach((section, index) => {
-            section.style.cssText += `
-                background: #f8f9fa;
-                border: 1px solid #e9ecef;
-                border-radius: 8px;
-                padding: 15px;
-                margin-bottom: 15px;
-                page-break-inside: avoid;
-            `;
-        });
-        
-        // 隐藏不必要的元素
-        const elementsToHide = container.querySelectorAll('.no-pdf, .deep-link, .btn, button');
-        elementsToHide.forEach(element => {
-            element.style.display = 'none';
-        });
-        
-        // 优化标题样式
-        const headings = container.querySelectorAll('h3, h4');
-        headings.forEach(heading => {
-            heading.style.cssText += `
-                color: #333;
-                margin-bottom: 10px;
-                font-weight: bold;
-            `;
-        });
-
-        // 优化文字样式
-        const textElements = container.querySelectorAll('p, span, div');
-        textElements.forEach(element => {
-            if (element.style.color === 'white' || element.style.color === '#fff') {
-                element.style.color = '#333';
-            }
-        });
-    }
-
-    showPDFLoading() {
-        const loadingEl = document.createElement('div');
-        loadingEl.id = 'pdfLoading';
-        loadingEl.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-        loadingEl.innerHTML = `
-            <div class="bg-white rounded-lg p-6 flex items-center">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-4"></div>
-                <span class="text-lg">正在生成PDF文件...</span>
-            </div>
-        `;
-        document.body.appendChild(loadingEl);
-    }
-
-    hidePDFLoading() {
-        const loadingEl = document.getElementById('pdfLoading');
-        if (loadingEl) {
-            document.body.removeChild(loadingEl);
-        }
-    }
-
-    showPDFSuccess() {
-        const successEl = document.createElement('div');
-        successEl.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-        successEl.innerHTML = `
-            <div class="flex items-center">
-                <span class="mr-2">📄</span>
-                <span>PDF文件导出成功！</span>
-            </div>
-        `;
-        document.body.appendChild(successEl);
-        
-        setTimeout(() => {
-            if (document.body.contains(successEl)) {
-                document.body.removeChild(successEl);
-            }
-        }, 3000);
+    exportMonthlyReport() {
+        // PDF导出功能已移除
+        alert('PDF导出功能已移除\n\n您可以使用"分享报告"功能生成精美的长图进行保存和分享！');
     }
 
     saveNextMonthFocus() {
