@@ -21,8 +21,11 @@ if __name__ == "__main__":
     
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("", PORT), MyHTTPRequestHandler) as httpd:
-        print(f"服务器启动在 http://localhost:{PORT}")
+        print(f"🚀 AI圆桌成长系统启动在 http://localhost:{PORT}")
+        print("📡 支持月度报告AI分析，直接调用配置的AI服务")
+        print("🔧 支持的AI服务: 阿里云百炼, OpenRouter")
         print("按 Ctrl+C 停止服务器")
+        print("-" * 50)
         
         # 自动打开浏览器
         webbrowser.open(f'http://localhost:{PORT}')
@@ -30,5 +33,5 @@ if __name__ == "__main__":
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
-            print("\n服务器已停止")
+            print("\n✅ 服务器已停止")
             httpd.shutdown()
