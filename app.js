@@ -163,9 +163,14 @@ class AppState {
             this.currentSession.messages.push({
                 ...message,
                 id: Date.now().toString(),
-                timestamp: new Date().toISOString()
+                timestamp: Date.now() // 使用时间戳方便比较
             });
             this.saveToStorage();
+            
+            // 触发内容更新事件
+            if (this.onContentUpdate && typeof this.onContentUpdate === 'function') {
+                this.onContentUpdate();
+            }
         }
     }
 
@@ -467,6 +472,14 @@ class AIRoundtableApp {
         this.treeImageCache = {}; // 缓存树木图片
         this.forestTrees = []; // 成长森林中的树木
         this.competencyRadar = null; // 能力雷达图实例
+        
+        // 设置内容更新回调
+        this.state.onContentUpdate = () => {
+            if (this.competencyRadar) {
+                this.competencyRadar.updateButtonState();
+            }
+        };
+        
         this.init();
     }
 
@@ -475,6 +488,9 @@ class AIRoundtableApp {
         this.renderSessions();
         this.updateConfigUI();
         this.updateGrowthUI();
+        
+        // 初始化能力雷达图
+        this.initCompetencyRadar();
         
         // 确保界面元素默认显示
         document.getElementById('aiRoleBar').style.display = 'block';
@@ -1974,12 +1990,20 @@ class AIRoundtableApp {
         });
     }
     
+    initCompetencyRadar() {
+        // 初始化能力雷达图，确保在应用启动时就可用
+        if (!this.competencyRadar) {
+            this.competencyRadar = new CompetencyRadarChart('competencyRadarChart', this);
+        }
+    }
+    
     renderGrowthDashboard() {
         // 初始化或刷新雷达图
         if (!this.competencyRadar) {
             this.competencyRadar = new CompetencyRadarChart('competencyRadarChart', this);
         } else {
             this.competencyRadar.renderChart();
+            this.competencyRadar.updateButtonState(); // 确保按钮状态正确
         }
         
         // 如果没有足够的数据，显示默认内容
@@ -2514,15 +2538,18 @@ class CompetencyRadarChart {
         const refreshBtn = document.getElementById('refreshRadarBtn');
         if (refreshBtn) {
             refreshBtn.addEventListener('click', () => {
-                this.analyzeCompetencies();
+                if (!refreshBtn.disabled) {
+                    this.analyzeCompetencies(true); // 直接使用双模型
+                }
             });
-        }
 
-        // 双模型分析按钮
-        const dualModelBtn = document.getElementById('dualModelBtn');
-        if (dualModelBtn) {
-            dualModelBtn.addEventListener('click', () => {
-                this.analyzeCompetencies(true); // 强制使用双模型
+            // 添加鼠标悬停事件来显示提示
+            refreshBtn.addEventListener('mouseenter', () => {
+                this.updateButtonTooltip();
+            });
+
+            refreshBtn.addEventListener('mouseleave', () => {
+                this.hideTooltip();
             });
         }
 
@@ -2533,13 +2560,156 @@ class CompetencyRadarChart {
                 this.hideCompetencyDetail();
             });
         }
+
+        // 初始化按钮状态
+        this.updateButtonState();
+    }
+
+    updateButtonState() {
+        const refreshBtn = document.getElementById('refreshRadarBtn');
+        if (!refreshBtn) return;
+
+        const canAnalyze = this.canPerformAnalysis();
+        
+        if (canAnalyze.allowed) {
+            // 可以分析
+            refreshBtn.disabled = false;
+            refreshBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            refreshBtn.classList.add('hover:bg-blue-50');
+        } else {
+            // 不能分析
+            refreshBtn.disabled = true;
+            refreshBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            refreshBtn.classList.remove('hover:bg-blue-50');
+        }
+    }
+
+    canPerformAnalysis() {
+        const conversationData = this.gatherConversationData();
+        const hasData = conversationData && conversationData.length > 0;
+        
+        // 检查是否有新的对话内容（自上次分析以来）
+        const lastAnalysisTime = this.getLastAnalysisTime();
+        const hasNewContent = this.hasNewContentSince(lastAnalysisTime);
+        
+        // 检查上次分析是否成功
+        const lastAnalysisSuccess = this.wasLastAnalysisSuccessful();
+        
+        if (!hasData) {
+            return {
+                allowed: false,
+                reason: 'noData',
+                message: '暂无对话数据，请先进行对话和复盘'
+            };
+        }
+        
+        if (!hasNewContent && lastAnalysisSuccess) {
+            return {
+                allowed: false,
+                reason: 'noNewContent',
+                message: '当前数据已分析完毕，进行新对话后可重新分析'
+            };
+        }
+        
+        if (!lastAnalysisSuccess) {
+            return {
+                allowed: true,
+                reason: 'retryAfterFailure',
+                message: '上次分析未完全成功，可重新尝试双模型分析'
+            };
+        }
+        
+        return {
+            allowed: true,
+            reason: 'hasNewContent',
+            message: '检测到新内容，可进行双模型分析'
+        };
+    }
+
+    getLastAnalysisTime() {
+        // 从 competencies 数据中获取最后分析时间
+        const competencies = this.app.state.growthData.competencies;
+        let latestTime = 0;
+        
+        for (const [dim, data] of Object.entries(competencies)) {
+            if (data.lastUpdated && data.lastUpdated > latestTime) {
+                latestTime = data.lastUpdated;
+            }
+        }
+        
+        return latestTime;
+    }
+
+    hasNewContentSince(timestamp) {
+        // 检查是否有新的对话或复盘内容
+        const sessions = this.app.state.sessions;
+        
+        // 检查对话内容
+        for (const session of sessions) {
+            for (const message of session.messages) {
+                if (message.role === 'user' && message.timestamp > timestamp) {
+                    return true;
+                }
+            }
+        }
+        
+        // 检查复盘内容（如果有的话）
+        // 这里可以根据实际的复盘数据结构来检查
+        
+        return false;
+    }
+
+    wasLastAnalysisSuccessful() {
+        const competencies = this.app.state.growthData.competencies;
+        
+        // 检查是否所有维度都有真实的分析数据（非默认数据）
+        for (const [dim, data] of Object.entries(competencies)) {
+            if (!data.analysis || 
+                !data.analysis.strengths || 
+                !data.analysis.improvements ||
+                data.analysis.evidence.includes('默认评估')) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    updateButtonTooltip() {
+        const tooltip = document.getElementById('refreshTooltip');
+        const tooltipText = document.getElementById('tooltipText');
+        
+        if (!tooltip || !tooltipText) return;
+        
+        const canAnalyze = this.canPerformAnalysis();
+        tooltipText.textContent = canAnalyze.message;
+        
+        // 显示提示
+        tooltip.classList.remove('opacity-0');
+        tooltip.classList.add('opacity-100');
+    }
+
+    hideTooltip() {
+        const tooltip = document.getElementById('refreshTooltip');
+        if (tooltip) {
+            tooltip.classList.remove('opacity-100');
+            tooltip.classList.add('opacity-0');
+        }
     }
 
     renderChart() {
         const canvas = document.getElementById(this.canvasId);
         const placeholder = document.getElementById('radarPlaceholder');
         
-        if (!canvas || !this.app.state.reflectionCards || this.app.state.reflectionCards.length < 2) {
+        if (!canvas) {
+            return;
+        }
+        
+        // 检查是否有分析数据或对话数据
+        const hasAnalysisData = Object.values(this.app.state.growthData.competencies).some(comp => comp.analysis !== null);
+        const hasConversationData = this.gatherConversationData().length > 0;
+        
+        if (!hasAnalysisData && !hasConversationData) {
             // 数据不足时显示占位符
             if (canvas) canvas.style.display = 'none';
             if (placeholder) placeholder.classList.remove('hidden');
@@ -3777,7 +3947,7 @@ ${conversationSummary}
     }
 
     updateCompetencyData(analysis) {
-        const now = new Date().toISOString();
+        const now = Date.now(); // 使用时间戳更方便比较
         
         Object.keys(analysis).forEach(competency => {
             if (this.app.state.growthData.competencies[competency]) {
@@ -3791,6 +3961,12 @@ ${conversationSummary}
         
         // 保存到本地存储
         this.app.state.saveToStorage();
+        
+        // 更新按钮状态
+        this.updateButtonState();
+        
+        // 重新渲染雷达图
+        this.renderChart();
     }
 
     showCompetencyDetail(competencyName) {
