@@ -33,8 +33,39 @@
             }
         }
 
+        // 检查用户登录状态
+        async function checkLoginStatus() {
+            try {
+                const response = await fetch('/api/auth/me', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    // 用户未登录，重定向到登录页面
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                
+                const data = await response.json();
+                console.log('用户已登录:', data.user.username);
+                return true;
+            } catch (error) {
+                console.error('检查登录状态时出错:', error);
+                // 出错时也重定向到登录页面
+                window.location.href = 'login.html';
+                return false;
+            }
+        }
+
         // 检查是否需要加载Tailwind CDN
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 首先检查登录状态
+            const isLoggedIn = await checkLoginStatus();
+            if (!isLoggedIn) {
+                return; // 如果未登录，会重定向到登录页面，不需要继续执行
+            }
+            
             // 先尝试配置本地 Tailwind
             configureTailwind();
             
@@ -53,11 +84,88 @@
                 }
             }, 100);
         });
+
+        // 检查用户登录状态
+        async function checkLoginStatus() {
+            try {
+                const response = await fetch('/api/auth/me', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    // 用户未登录，重定向到登录页面
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                
+                const data = await response.json();
+                console.log('用户已登录:', data.user.username);
+                return true;
+            } catch (error) {
+                console.error('检查登录状态时出错:', error);
+                // 出错时也重定向到登录页面
+                window.location.href = 'login.html';
+                return false;
+            }
+        }
     </script>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-light-cream font-sans">
+    <!-- 检查登录状态的脚本 -->
+    <script>
+        // 页面加载时检查用户是否已登录
+        document.addEventListener('DOMContentLoaded', function() {
+            // checkAuthStatus 函数已经在上面的 checkLoginStatus 中处理了
+            // 这里只需要处理管理员按钮的显示
+            setTimeout(checkAdminButton, 500); // 延迟执行，确保用户信息已加载
+        });
+        
+        // 检查并显示管理员按钮
+        async function checkAdminButton() {
+            if (window.currentUser && window.currentUser.role === 'admin') {
+                const bottomMenu = document.querySelector('.border-t.border-gray-100.space-y-2');
+                if (bottomMenu) {
+                    const adminBtn = document.createElement('button');
+                    adminBtn.id = 'adminBtn';
+                    adminBtn.className = 'w-full text-left px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors';
+                    adminBtn.innerHTML = '👑 管理后台';
+                    adminBtn.onclick = function() {
+                        window.location.href = 'admin.html';
+                    };
+                    bottomMenu.insertBefore(adminBtn, bottomMenu.firstChild);
+                }
+            }
+        }
+        
+        // 更新 checkLoginStatus 函数以设置全局用户信息
+        async function checkLoginStatus() {
+            try {
+                const response = await fetch('/api/auth/me', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    // 用户未登录，重定向到登录页面
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                
+                const data = await response.json();
+                window.currentUser = data.user; // 设置全局用户信息
+                console.log('用户已登录:', data.user.username);
+                return true;
+            } catch (error) {
+                console.error('检查登录状态时出错:', error);
+                // 出错时也重定向到登录页面
+                window.location.href = 'login.html';
+                return false;
+            }
+        }
+    </script>
     <div id="app" class="flex h-screen">
         <!-- 左侧导航栏 -->
         <div class="w-80 bg-white border-r border-gray-200 flex flex-col">
@@ -85,11 +193,17 @@
 
             <!-- 底部功能区 -->
             <div class="p-4 border-t border-gray-100 space-y-2">
+                <button id="profileBtn" class="w-full text-left px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                    👤 个人中心
+                </button>
                 <button id="configBtn" class="w-full text-left px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
                     ⚙️ 配置中心
                 </button>
                 <button id="growthLogBtn" class="w-full text-left px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
                     📓 成长日志
+                </button>
+                <button id="logoutBtn" class="w-full text-left px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                    🚪 退出登录
                 </button>
             </div>
         </div>
@@ -677,5 +791,27 @@
     </div>
 
     <script src="app.js"></script>
+    <script>
+        // 个人中心按钮点击事件
+        document.getElementById('profileBtn').addEventListener('click', function() {
+            window.location.href = 'profile.html';
+        });
+        
+        // 退出登录按钮点击事件
+        document.getElementById('logoutBtn').addEventListener('click', async function() {
+            try {
+                await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include' // 包含Cookie
+                });
+                
+                // 重定向到登录页面
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error('退出登录时出错:', error);
+                alert('退出登录失败，请稍后再试');
+            }
+        });
+    </script>
 </body>
 </html>

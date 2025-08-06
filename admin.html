@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理 - AI圆桌 · 成长对话</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <!-- 使用本地Tailwind CSS文件，如果加载失败则回退到CDN -->
+    <link rel="stylesheet" href="tailwind.min.css" onerror="this.onerror=null;this.href='https://cdn.tailwindcss.com';">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // 安全配置 Tailwind CSS
+        function configureTailwind() {
+            if (typeof tailwind !== 'undefined' && tailwind.config) {
+                try {
+                    tailwind.config = {
+                        theme: {
+                            extend: {
+                                colors: {
+                                    'warm-blue': '#5A7CA8',
+                                    'morning-orange': '#FF9A4D',
+                                    'light-cream': '#FEFCF7'
+                                }
+                            }
+                        }
+                    };
+                    console.log('Tailwind 配置已成功应用');
+                } catch (error) {
+                    console.warn('Tailwind 配置失败:', error);
+                }
+            }
+        }
+
+        // 检查是否需要加载Tailwind CDN
+        document.addEventListener('DOMContentLoaded', function() {
+            // 先尝试配置本地 Tailwind
+            configureTailwind();
+            
+            // 检查样式是否生效
+            setTimeout(function() {
+                const style = getComputedStyle(document.body);
+                if (style.backgroundColor !== 'rgb(254, 252, 247)') { // 检查light-cream背景色是否生效
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.tailwindcss.com';
+                    script.onload = function() {
+                        // Tailwind CDN 加载完成后配置
+                        setTimeout(configureTailwind, 100);
+                    };
+                    document.head.appendChild(script);
+                    console.log('已加载Tailwind CDN作为备用');
+                }
+            }, 100);
+        });
+    </script>
+</head>
+<body class="bg-light-cream font-sans">
+    <div class="min-h-screen flex flex-col">
+        <!-- 顶部导航栏 -->
+        <nav class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex">
+                        <div class="flex-shrink-0 flex items-center">
+                            <a href="index.html" class="text-xl font-bold text-warm-blue">AI圆桌 · 管理后台</a>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <span id="currentUsername" class="text-gray-600 mr-4"></span>
+                        <button id="logoutBtn" class="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">
+                            退出登录
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主内容区 -->
+        <div class="flex-1 flex">
+            <!-- 侧边栏 -->
+            <div class="w-64 bg-white shadow-sm">
+                <div class="p-4">
+                    <h2 class="text-lg font-medium text-gray-900">管理菜单</h2>
+                </div>
+                <nav class="mt-2">
+                    <a href="#" id="dashboardTab" class="nav-item flex items-center px-4 py-3 text-sm font-medium text-warm-blue bg-blue-50 border-l-4 border-warm-blue">
+                        <svg class="mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        运营看板
+                    </a>
+                    <a href="#" id="userManagementTab" class="nav-item flex items-center px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                        <svg class="mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        用户管理
+                    </a>
+                    <a href="#" id="auditLogTab" class="nav-item flex items-center px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                        <svg class="mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        审计日志
+                    </a>
+                    <a href="index.html" class="flex items-center px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                        <svg class="mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                        返回首页
+                    </a>
+                </nav>
+            </div>
+
+            <!-- 内容区 -->
+            <div class="flex-1 p-8">
+                <div class="max-w-6xl mx-auto">
+                    <!-- 错误提示 -->
+                    <div id="errorAlert" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative hidden mb-4" role="alert">
+                        <span id="errorMessage" class="block sm:inline"></span>
+                    </div>
+                    
+                    <!-- 成功提示 -->
+                    <div id="successAlert" class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative hidden mb-4" role="alert">
+                        <span id="successMessage" class="block sm:inline"></span>
+                    </div>
+                    
+                    <!-- 运营看板 -->
+                    <div id="dashboardContent" class="tab-content">
+                        <h1 class="text-2xl font-semibold text-gray-900 mb-6">运营看板</h1>
+                        
+                        <!-- 统计卡片 -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                            <div class="bg-white overflow-hidden shadow rounded-lg">
+                                <div class="p-5">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0">
+                                            <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="ml-5 w-0 flex-1">
+                                            <dl>
+                                                <dt class="text-sm font-medium text-gray-500 truncate">总用户数</dt>
+                                                <dd id="totalUsers" class="text-lg font-medium text-gray-900">-</dd>
+                                            </dl>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white overflow-hidden shadow rounded-lg">
+                                <div class="p-5">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0">
+                                            <div class="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+                                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="ml-5 w-0 flex-1">
+                                            <dl>
+                                                <dt class="text-sm font-medium text-gray-500 truncate">活跃用户</dt>
+                                                <dd id="activeUsers" class="text-lg font-medium text-gray-900">-</dd>
+                                            </dl>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white overflow-hidden shadow rounded-lg">
+                                <div class="p-5">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0">
+                                            <div class="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center">
+                                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"></path>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="ml-5 w-0 flex-1">
+                                            <dl>
+                                                <dt class="text-sm font-medium text-gray-500 truncate">管理员</dt>
+                                                <dd id="adminUsers" class="text-lg font-medium text-gray-900">-</dd>
+                                            </dl>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white overflow-hidden shadow rounded-lg">
+                                <div class="p-5">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0">
+                                            <div class="w-8 h-8 bg-orange-500 rounded-md flex items-center justify-center">
+                                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="ml-5 w-0 flex-1">
+                                            <dl>
+                                                <dt class="text-sm font-medium text-gray-500 truncate">今日注册</dt>
+                                                <dd id="todayRegistrations" class="text-lg font-medium text-gray-900">-</dd>
+                                            </dl>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white overflow-hidden shadow rounded-lg">
+                                <div class="p-5">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0">
+                                            <div class="w-8 h-8 bg-red-500 rounded-md flex items-center justify-center">
+                                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="ml-5 w-0 flex-1">
+                                            <dl>
+                                                <dt class="text-sm font-medium text-gray-500 truncate">今日活跃</dt>
+                                                <dd id="todayActiveUsers" class="text-lg font-medium text-gray-900">-</dd>
+                                            </dl>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- DAU图表 -->
+                        <div class="bg-white shadow rounded-lg p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-medium text-gray-900">日活跃用户趋势</h3>
+                                <div class="flex space-x-2">
+                                    <button id="dau7Days" class="px-3 py-1 text-sm bg-warm-blue text-white rounded-md">7天</button>
+                                    <button id="dau30Days" class="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">30天</button>
+                                </div>
+                            </div>
+                            <div class="h-80">
+                                <canvas id="dauChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 用户管理 -->
+                    <div id="userManagementContent" class="tab-content hidden">
+                        <h1 class="text-2xl font-semibold text-gray-900 mb-6">用户管理</h1>
+                        
+                        <!-- 搜索和筛选 -->
+                        <div class="bg-white shadow rounded-lg p-6 mb-6">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">搜索用户</label>
+                                    <input type="text" id="searchInput" placeholder="用户名或邮箱" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-warm-blue focus:border-warm-blue">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">角色筛选</label>
+                                    <select id="roleFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-warm-blue focus:border-warm-blue">
+                                        <option value="">全部角色</option>
+                                        <option value="user">普通用户</option>
+                                        <option value="admin">管理员</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">状态筛选</label>
+                                    <select id="statusFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-warm-blue focus:border-warm-blue">
+                                        <option value="">全部状态</option>
+                                        <option value="active">启用</option>
+                                        <option value="disabled">禁用</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-end">
+                                    <button id="searchBtn" class="w-full px-4 py-2 bg-warm-blue text-white rounded-md hover:bg-blue-600">
+                                        搜索
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 用户列表 -->
+                        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                                <h2 class="text-lg leading-6 font-medium text-gray-900">用户列表</h2>
+                                <button id="refreshBtn" class="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">
+                                    刷新列表
+                                </button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                用户名
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                邮箱
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                角色
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                状态
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                注册时间
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                最后登录
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                操作
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="userTableBody" class="bg-white divide-y divide-gray-200">
+                                        <!-- 用户数据将通过JS动态生成 -->
+                                        <tr>
+                                            <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">
+                                                加载中...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- 分页 -->
+                            <div id="pagination" class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                                <div class="flex-1 flex justify-between sm:hidden">
+                                    <button id="prevPageMobile" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                        上一页
+                                    </button>
+                                    <button id="nextPageMobile" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                        下一页
+                                    </button>
+                                </div>
+                                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                    <div>
+                                        <p class="text-sm text-gray-700">
+                                            显示第 <span id="pageStart" class="font-medium">1</span> 到 <span id="pageEnd" class="font-medium">20</span> 条，
+                                            共 <span id="totalCount" class="font-medium">0</span> 条记录
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" id="pageNumbers">
+                                            <!-- 页码按钮将通过JS动态生成 -->
+                                        </nav>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 审计日志 -->
+                    <div id="auditLogContent" class="tab-content hidden">
+                        <h1 class="text-2xl font-semibold text-gray-900 mb-6">审计日志</h1>
+                        
+                        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                                <h2 class="text-lg leading-6 font-medium text-gray-900">操作记录</h2>
+                                <button id="refreshAuditBtn" class="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">
+                                    刷新日志
+                                </button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                时间
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                管理员
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                操作
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                目标用户
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                详情
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                IP地址
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="auditLogTableBody" class="bg-white divide-y divide-gray-200">
+                                        <!-- 审计日志数据将通过JS动态生成 -->
+                                        <tr>
+                                            <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                                                加载中...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- 审计日志分页 -->
+                            <div id="auditPagination" class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                                <div class="flex-1 flex justify-between sm:hidden">
+                                    <button id="auditPrevPageMobile" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                        上一页
+                                    </button>
+                                    <button id="auditNextPageMobile" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                        下一页
+                                    </button>
+                                </div>
+                                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                    <div>
+                                        <p class="text-sm text-gray-700">
+                                            显示第 <span id="auditPageStart" class="font-medium">1</span> 到 <span id="auditPageEnd" class="font-medium">50</span> 条，
+                                            共 <span id="auditTotalCount" class="font-medium">0</span> 条记录
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" id="auditPageNumbers">
+                                            <!-- 页码按钮将通过JS动态生成 -->
+                                        </nav>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 重置密码模态框 -->
+    <div id="resetPasswordModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 w-96 max-w-90vw">
+            <h3 class="text-xl font-medium mb-4">重置用户密码</h3>
+            <p class="text-gray-600 mb-4">为用户 <span id="resetPasswordUsername" class="font-medium"></span> 设置新密码：</p>
+            
+            <div class="mb-4">
+                <label for="newPassword" class="block text-sm font-medium text-gray-700 mb-1">新密码</label>
+                <input type="password" id="newPassword" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-warm-blue focus:border-warm-blue" placeholder="至少6个字符">
+            </div>
+            
+            <div class="mb-4">
+                <label for="confirmNewPassword" class="block text-sm font-medium text-gray-700 mb-1">确认新密码</label>
+                <input type="password" id="confirmNewPassword" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-warm-blue focus:border-warm-blue" placeholder="再次输入新密码">
+            </div>
+            
+            <div class="flex space-x-3">
+                <button id="cancelResetPassword" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    取消
+                </button>
+                <button id="confirmResetPassword" class="flex-1 py-2 px-4 bg-warm-blue text-white rounded-lg hover:bg-blue-600">
+                    确认重置
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑用户模态框 -->
+    <div id="editUserModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 w-96 max-w-90vw">
+            <h3 class="text-xl font-medium mb-4">编辑用户信息</h3>
+            <p class="text-gray-600 mb-4">编辑用户 <span id="editUserUsername" class="font-medium"></span> 的信息：</p>
+            
+            <div class="mb-4">
+                <label for="editEmail" class="block text-sm font-medium text-gray-700 mb-1">电子邮箱</label>
+                <input type="email" id="editEmail" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-warm-blue focus:border-warm-blue" placeholder="电子邮箱">
+            </div>
+            
+            <div class="mb-4">
+                <label for="editRole" class="block text-sm font-medium text-gray-700 mb-1">角色</label>
+                <select id="editRole" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-warm-blue focus:border-warm-blue">
+                    <option value="user">普通用户</option>
+                    <option value="admin">管理员</option>
+                </select>
+            </div>
+            
+            <div class="mb-4">
+                <label for="editStatus" class="block text-sm font-medium text-gray-700 mb-1">状态</label>
+                <select id="editStatus" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-warm-blue focus:border-warm-blue">
+                    <option value="active">启用</option>
+                    <option value="disabled">禁用</option>
+                </select>
+            </div>
+            
+            <div class="flex space-x-3">
+                <button id="cancelEditUser" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    取消
+                </button>
+                <button id="confirmEditUser" class="flex-1 py-2 px-4 bg-warm-blue text-white rounded-lg hover:bg-blue-600">
+                    保存更改
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentPage = 1;
+        let currentAuditPage = 1;
+        let dauChart = null;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // 检查用户是否已登录且是管理员
+            checkAdminStatus();
+            
+            // 获取当前用户信息
+            getCurrentUser();
+            
+            // 初始化标签页
+            initTabs();
+            
+            // 加载运营数据
+            loadDashboardData();
+            
+            // 退出登录按钮点击事件
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+            
+            // 重置密码模态框
+            const resetPasswordModal = document.getElementById('resetPasswordModal');
+            document.getElementById('cancelResetPassword').addEventListener('click', () => {
+                resetPasswordModal.classList.add('hidden');
+            });
+            document.getElementById('confirmResetPassword').addEventListener('click', resetPassword);
+            
+            // 编辑用户模态框
+            const editUserModal = document.getElementById('editUserModal');
+            document.getElementById('cancelEditUser').addEventListener('click', () => {
+                editUserModal.classList.add('hidden');
+            });
+            document.getElementById('confirmEditUser').addEventListener('click', saveUserChanges);
+            
+            // 用户管理相关事件
+            document.getElementById('refreshBtn').addEventListener('click', () => loadUsers(currentPage));
+            document.getElementById('searchBtn').addEventListener('click', () => {
+                currentPage = 1;
+                loadUsers(currentPage);
+            });
+            
+            // 审计日志相关事件
+            document.getElementById('refreshAuditBtn').addEventListener('click', () => loadAuditLogs(currentAuditPage));
+            
+            // DAU图表时间范围切换
+            // DAU图表时间范围切换
+            document.getElementById('dau7Days').addEventListener('click', () => {
+                setActiveDauButton('dau7Days');
+                loadDauChart(7);
+            });
+            document.getElementById('dau30Days').addEventListener('click', () => {
+                setActiveDauButton('dau30Days');
+                loadDauChart(30);
+            });
+            
+            // 搜索框回车事件
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        currentPage = 1;
+                        loadUsers(currentPage);
+                    }
+                });
+            }
+        });
+        
+        // 初始化标签页
+        function initTabs() {
+            const tabs = document.querySelectorAll('.nav-item');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // 移除所有活跃状态
+                    tabs.forEach(t => {
+                        t.classList.remove('text-warm-blue', 'bg-blue-50', 'border-l-4', 'border-warm-blue');
+                        t.classList.add('text-gray-600');
+                    });
+                    
+                    // 添加当前标签的活跃状态
+                    this.classList.remove('text-gray-600');
+                    this.classList.add('text-warm-blue', 'bg-blue-50', 'border-l-4', 'border-warm-blue');
+                    
+                    // 隐藏所有内容
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.add('hidden');
+                    });
+                    
+                    // 显示对应内容
+                    const tabId = this.id;
+                    if (tabId === 'dashboardTab') {
+                        document.getElementById('dashboardContent').classList.remove('hidden');
+                        loadDashboardData();
+                    } else if (tabId === 'userManagementTab') {
+                        document.getElementById('userManagementContent').classList.remove('hidden');
+                        loadUsers(1);
+                    } else if (tabId === 'auditLogTab') {
+                        document.getElementById('auditLogContent').classList.remove('hidden');
+                        loadAuditLogs(1);
+                    }
+                });
+            });
+        }
+        
+        // 检查用户是否已登录且是管理员
+        async function checkAdminStatus() {
+            try {
+                const response = await fetch('/api/auth/me', {
+                    method: 'GET',
+                    credentials: 'include' // 包含Cookie
+                });
+                
+                if (!response.ok) {
+                    // 用户未登录，重定向到登录页面
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.user.role !== 'admin') {
+                    // 用户不是管理员，重定向到首页
+                    window.location.href = 'index.html';
+                    return;
+                }
+            } catch (error) {
+                console.error('检查管理员状态时出错:', error);
+                window.location.href = 'login.html';
+            }
+        }
+        
+        // 获取当前用户信息
+        async function getCurrentUser() {
+            try {
+                const response = await fetch('/api/auth/me', {
+                    method: 'GET',
+                    credentials: 'include' // 包含Cookie
+                });
+                
+                if (!response.ok) {
+                    throw new Error('获取用户信息失败');
+                }
+                
+                const data = await response.json();
+                document.getElementById('currentUsername').textContent = data.user.username;
+            } catch (error) {
+                console.error('获取当前用户信息时出错:', error);
+            }
+        }
+        
+        // 加载运营数据
+        async function loadDashboardData() {
+            try {
+                // 加载统计数据
+                const statsResponse = await fetch('/api/auth/dashboard/stats', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (statsResponse.ok) {
+                    const statsData = await statsResponse.json();
+                    updateStatsCards(statsData.stats);
+                }
+                
+                // 加载DAU图表
+                loadDauChart(7);
+            } catch (error) {
+                console.error('加载运营数据时出错:', error);
+                showError(error.message);
+            }
+        }
+        
+        // 更新统计卡片
+        function updateStatsCards(stats) {
+            document.getElementById('totalUsers').textContent = stats.totalUsers || 0;
+            document.getElementById('activeUsers').textContent = stats.activeUsers || 0;
+            document.getElementById('adminUsers').textContent = stats.adminUsers || 0;
+            document.getElementById('todayRegistrations').textContent = stats.todayRegistrations || 0;
+            document.getElementById('todayActiveUsers').textContent = stats.todayActiveUsers || 0;
+        }
+        
+        // 加载DAU图表
+        async function loadDauChart(days) {
+            try {
+                const response = await fetch(`/api/auth/dashboard/dau?days=${days}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('获取DAU数据失败');
+                }
+                
+                const data = await response.json();
+                renderDauChart(data.dauData);
+            } catch (error) {
+                console.error('加载DAU图表时出错:', error);
+                showError(error.message);
+            }
+        }
+        
+        // 渲染DAU图表
+        function renderDauChart(dauData) {
+            const ctx = document.getElementById('dauChart').getContext('2d');
+            
+            // 销毁现有图表
+            if (dauChart) {
+                dauChart.destroy();
+            }
+            
+            // 准备数据
+            const labels = dauData.map(item => {
+                const date = new Date(item.date);
+                return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+            }).reverse();
+            
+            const data = dauData.map(item => item.active_users).reverse();
+            
+            dauChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '日活跃用户',
+                        data: data,
+                        borderColor: '#5A7CA8',
+                        backgroundColor: 'rgba(90, 124, 168, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 设置DAU按钮活跃状态
+        function setActiveDauButton(activeId) {
+            document.getElementById('dau7Days').classList.remove('bg-warm-blue', 'text-white');
+            document.getElementById('dau7Days').classList.add('bg-gray-200', 'text-gray-700');
+            document.getElementById('dau30Days').classList.remove('bg-warm-blue', 'text-white');
+            document.getElementById('dau30Days').classList.add('bg-gray-200', 'text-gray-700');
+            
+            document.getElementById(activeId).classList.remove('bg-gray-200', 'text-gray-700');
+            document.getElementById(activeId).classList.add('bg-warm-blue', 'text-white');
+        }
+        
+        // 加载用户列表
+        async function loadUsers(page = 1) {
+            try {
+                const searchTerm = document.getElementById('searchInput').value;
+                const roleFilter = document.getElementById('roleFilter').value;
+                const statusFilter = document.getElementById('statusFilter').value;
+                
+                const params = new URLSearchParams({
+                    page: page,
+                    limit: 20,
+                    search: searchTerm,
+                    role: roleFilter,
+                    status: statusFilter
+                });
+                
+                const response = await fetch(`/api/auth/users/search?${params}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('获取用户列表失败');
+                }
+                
+                const data = await response.json();
+                renderUserTable(data.users);
+                renderPagination(data, 'pagination', 'pageNumbers', loadUsers);
+                currentPage = page;
+            } catch (error) {
+                console.error('加载用户列表时出错:', error);
+                showError(error.message);
+            }
+        }
+        
+        // 加载审计日志
+        async function loadAuditLogs(page = 1) {
+            try {
+                const response = await fetch(`/api/auth/audit-logs?page=${page}&limit=50`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('获取审计日志失败');
+                }
+                
+                const data = await response.json();
+                renderAuditLogTable(data.logs);
+                renderPagination(data, 'auditPagination', 'auditPageNumbers', loadAuditLogs, 'audit');
+                currentAuditPage = page;
+            } catch (error) {
+                console.error('加载审计日志时出错:', error);
+                showError(error.message);
+            }
+        }
+        
+        // 渲染用户表格
+        function renderUserTable(users) {
+            const tableBody = document.getElementById('userTableBody');
+            
+            if (!users || users.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">
+                            暂无用户数据
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tableBody.innerHTML = users.map(user => `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        ${user.username}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${user.email || '-'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${user.role === 'admin' ? 
+                            '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">管理员</span>' : 
+                            '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">普通用户</span>'
+                        }
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${user.status === 'active' ? 
+                            '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">启用</span>' : 
+                            '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">禁用</span>'
+                        }
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${formatDate(user.created_at)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${user.last_login ? formatDate(user.last_login) : '-'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button class="text-warm-blue hover:text-blue-700 mr-3" onclick="openEditUserModal(${user.id}, '${user.username}', '${user.email || ''}', '${user.role}', '${user.status}')">
+                            编辑
+                        </button>
+                        <button class="text-orange-500 hover:text-orange-700" onclick="openResetPasswordModal(${user.id}, '${user.username}')">
+                            重置密码
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // 渲染审计日志表格
+        function renderAuditLogTable(logs) {
+            const tableBody = document.getElementById('auditLogTableBody');
+            
+            if (!logs || logs.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                            暂无审计日志
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tableBody.innerHTML = logs.map(log => `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${formatDate(log.created_at)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        ${log.admin_username}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getActionBadgeClass(log.action)}">
+                            ${log.action}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${log.target_username || '-'}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                        ${log.details || '-'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${log.ip_address || '-'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // 获取操作类型的样式类
+        function getActionBadgeClass(action) {
+            switch (action) {
+                case '重置用户密码':
+                    return 'bg-orange-100 text-orange-800';
+                case '启用用户账户':
+                    return 'bg-green-100 text-green-800';
+                case '禁用用户账户':
+                    return 'bg-red-100 text-red-800';
+                case '修改用户角色':
+                    return 'bg-blue-100 text-blue-800';
+                default:
+                    return 'bg-gray-100 text-gray-800';
+            }
+        }
+        
+        // 渲染分页
+        function renderPagination(data, containerId, pageNumbersId, loadFunction, prefix = '') {
+            const { page, totalPages, total, limit } = data;
+            
+            // 更新统计信息
+            const start = (page - 1) * limit + 1;
+            const end = Math.min(page * limit, total);
+            
+            if (prefix === 'audit') {
+                document.getElementById('auditPageStart').textContent = start;
+                document.getElementById('auditPageEnd').textContent = end;
+                document.getElementById('auditTotalCount').textContent = total;
+            } else {
+                document.getElementById('pageStart').textContent = start;
+                document.getElementById('pageEnd').textContent = end;
+                document.getElementById('totalCount').textContent = total;
+            }
+            
+            // 生成页码按钮
+            const pageNumbers = document.getElementById(pageNumbersId);
+            let paginationHTML = '';
+            
+            // 上一页按钮
+            if (page > 1) {
+                paginationHTML += `
+                    <button onclick="${loadFunction.name}(${page - 1})" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <span class="sr-only">上一页</span>
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                `;
+            }
+            
+            // 页码按钮
+            const startPage = Math.max(1, page - 2);
+            const endPage = Math.min(totalPages, page + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === page;
+                paginationHTML += `
+                    <button onclick="${loadFunction.name}(${i})" class="relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                        isActive 
+                            ? 'z-10 bg-warm-blue border-warm-blue text-white' 
+                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                    }">
+                        ${i}
+                    </button>
+                `;
+            }
+            
+            // 下一页按钮
+            if (page < totalPages) {
+                paginationHTML += `
+                    <button onclick="${loadFunction.name}(${page + 1})" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <span class="sr-only">下一页</span>
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                `;
+            }
+            
+            pageNumbers.innerHTML = paginationHTML;
+        }
+        
+        // 格式化日期
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        // 打开重置密码模态框
+        function openResetPasswordModal(userId, username) {
+            const modal = document.getElementById('resetPasswordModal');
+            document.getElementById('resetPasswordUsername').textContent = username;
+            modal.dataset.userId = userId;
+            
+            // 清空输入框
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmNewPassword').value = '';
+            
+            // 显示模态框
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        
+        // 重置密码
+        async function resetPassword() {
+            const modal = document.getElementById('resetPasswordModal');
+            const userId = modal.dataset.userId;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+            
+            // 验证密码
+            if (newPassword !== confirmNewPassword) {
+                showError('两次输入的密码不一致');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                showError('密码长度不能少于6个字符');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/auth/reset-password/${userId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ newPassword }),
+                    credentials: 'include' // 包含Cookie
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || '重置密码失败');
+                }
+                
+                // 隐藏模态框
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                
+                // 显示成功消息
+                showSuccess('密码重置成功');
+            } catch (error) {
+                console.error('重置密码时出错:', error);
+                showError(error.message);
+            }
+        }
+        
+        // 打开编辑用户模态框
+        function openEditUserModal(userId, username, email, role, status) {
+            const modal = document.getElementById('editUserModal');
+            document.getElementById('editUserUsername').textContent = username;
+            modal.dataset.userId = userId;
+            
+            // 填充表单
+            document.getElementById('editEmail').value = email;
+            document.getElementById('editRole').value = role;
+            document.getElementById('editStatus').value = status;
+            
+            // 显示模态框
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        
+        // 保存用户更改
+        async function saveUserChanges() {
+            const modal = document.getElementById('editUserModal');
+            const userId = modal.dataset.userId;
+            const email = document.getElementById('editEmail').value;
+            const role = document.getElementById('editRole').value;
+            const status = document.getElementById('editStatus').value;
+            
+            try {
+                // 更新用户信息
+                const infoResponse = await fetch(`/api/auth/users/${userId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email }),
+                    credentials: 'include' // 包含Cookie
+                });
+                
+                if (!infoResponse.ok) {
+                    const data = await infoResponse.json();
+                    throw new Error(data.error || '更新用户信息失败');
+                }
+                
+                // 更新用户角色
+                const roleResponse = await fetch(`/api/auth/users/${userId}/role`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ role }),
+                    credentials: 'include' // 包含Cookie
+                });
+                
+                if (!roleResponse.ok) {
+                    const data = await roleResponse.json();
+                    throw new Error(data.error || '更新用户角色失败');
+                }
+                
+                // 更新用户状态
+                const statusResponse = await fetch(`/api/auth/users/${userId}/status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status }),
+                    credentials: 'include' // 包含Cookie
+                });
+                
+                if (!statusResponse.ok) {
+                    const data = await statusResponse.json();
+                    throw new Error(data.error || '更新用户状态失败');
+                }
+                
+                // 隐藏模态框
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                
+                // 显示成功消息
+                showSuccess('用户信息更新成功');
+                
+                // 重新加载用户列表
+                loadUsers();
+            } catch (error) {
+                console.error('保存用户更改时出错:', error);
+                showError(error.message);
+            }
+        }
+        
+        // 退出登录
+        async function logout() {
+            try {
+                await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include' // 包含Cookie
+                });
+                
+                // 重定向到登录页面
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error('退出登录时出错:', error);
+                showError(error.message);
+            }
+        }
+        
+        // 显示错误消息
+        function showError(message) {
+            const errorAlert = document.getElementById('errorAlert');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            errorMessage.textContent = message;
+            errorAlert.classList.remove('hidden');
+            
+            // 5秒后自动隐藏
+            setTimeout(() => {
+                errorAlert.classList.add('hidden');
+            }, 5000);
+        }
+        
+        // 显示成功消息
+        function showSuccess(message) {
+            const successAlert = document.getElementById('successAlert');
+            const successMessage = document.getElementById('successMessage');
+            
+            successMessage.textContent = message;
+            successAlert.classList.remove('hidden');
+            
+            // 5秒后自动隐藏
+            setTimeout(() => {
+                successAlert.classList.add('hidden');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

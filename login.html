@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - AI圆桌 · 成长对话</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <!-- 使用本地Tailwind CSS文件，如果加载失败则回退到CDN -->
+    <link rel="stylesheet" href="tailwind.min.css" onerror="this.onerror=null;this.href='https://cdn.tailwindcss.com';">
+    <link rel="stylesheet" href="style.css">
+    <script>
+        // 安全配置 Tailwind CSS
+        function configureTailwind() {
+            if (typeof tailwind !== 'undefined' && tailwind.config) {
+                try {
+                    tailwind.config = {
+                        theme: {
+                            extend: {
+                                colors: {
+                                    'warm-blue': '#5A7CA8',
+                                    'morning-orange': '#FF9A4D',
+                                    'light-cream': '#FEFCF7'
+                                }
+                            }
+                        }
+                    };
+                    console.log('Tailwind 配置已成功应用');
+                } catch (error) {
+                    console.warn('Tailwind 配置失败:', error);
+                }
+            }
+        }
+
+        // 检查是否需要加载Tailwind CDN
+        document.addEventListener('DOMContentLoaded', function() {
+            // 先尝试配置本地 Tailwind
+            configureTailwind();
+            
+            // 检查样式是否生效
+            setTimeout(function() {
+                const style = getComputedStyle(document.body);
+                if (style.backgroundColor !== 'rgb(254, 252, 247)') { // 检查light-cream背景色是否生效
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.tailwindcss.com';
+                    script.onload = function() {
+                        // Tailwind CDN 加载完成后配置
+                        setTimeout(configureTailwind, 100);
+                    };
+                    document.head.appendChild(script);
+                    console.log('已加载Tailwind CDN作为备用');
+                }
+            }, 100);
+        });
+    </script>
+</head>
+<body class="bg-light-cream font-sans">
+    <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
+            <div class="text-center">
+                <h2 class="mt-6 text-3xl font-extrabold text-gray-900">登录</h2>
+                <p class="mt-2 text-sm text-gray-600">
+                    或 <a href="register.html" class="font-medium text-warm-blue hover:text-blue-500">注册新账户</a>
+                </p>
+            </div>
+            
+            <!-- 错误提示 -->
+            <div id="errorAlert" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative hidden" role="alert">
+                <span id="errorMessage" class="block sm:inline"></span>
+            </div>
+            
+            <form id="loginForm" class="mt-8 space-y-6">
+                <div class="rounded-md shadow-sm -space-y-px">
+                    <div>
+                        <label for="username" class="sr-only">用户名</label>
+                        <input id="username" name="username" type="text" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-warm-blue focus:border-warm-blue focus:z-10 sm:text-sm" placeholder="用户名">
+                    </div>
+                    <div>
+                        <label for="password" class="sr-only">密码</label>
+                        <input id="password" name="password" type="password" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-warm-blue focus:border-warm-blue focus:z-10 sm:text-sm" placeholder="密码">
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 text-warm-blue focus:ring-warm-blue border-gray-300 rounded">
+                        <label for="remember-me" class="ml-2 block text-sm text-gray-900">
+                            记住我
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-warm-blue hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-warm-blue">
+                        <span id="loginBtnText">登录</span>
+                        <span id="loginSpinner" class="hidden">
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            处理中...
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 检查用户是否已登录
+            checkAuthStatus();
+            
+            // 登录表单提交
+            const loginForm = document.getElementById('loginForm');
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // 显示加载状态
+                const loginBtnText = document.getElementById('loginBtnText');
+                const loginSpinner = document.getElementById('loginSpinner');
+                loginBtnText.classList.add('hidden');
+                loginSpinner.classList.remove('hidden');
+                
+                // 隐藏错误提示
+                const errorAlert = document.getElementById('errorAlert');
+                errorAlert.classList.add('hidden');
+                
+                // 获取表单数据
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                try {
+                    const response = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username, password }),
+                        credentials: 'include' // 包含Cookie
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.error || '登录失败');
+                    }
+                    
+                    // 登录成功，重定向到首页
+                    window.location.href = 'index.html';
+                } catch (error) {
+                    // 显示错误信息
+                    const errorMessage = document.getElementById('errorMessage');
+                    errorMessage.textContent = error.message;
+                    errorAlert.classList.remove('hidden');
+                    
+                    // 恢复按钮状态
+                    loginBtnText.classList.remove('hidden');
+                    loginSpinner.classList.add('hidden');
+                }
+            });
+        });
+        
+        // 检查用户是否已登录
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/api/auth/me', {
+                    method: 'GET',
+                    credentials: 'include' // 包含Cookie
+                });
+                
+                if (response.ok) {
+                    // 用户已登录，重定向到首页
+                    window.location.href = 'index.html';
+                }
+            } catch (error) {
+                // 用户未登录，继续显示登录页面
+                console.error('检查登录状态时出错:', error);
+            }
+        }
+    </script>
+</body>
+</html>
